@@ -39,9 +39,6 @@ import { useCompanyQuery } from "@/hooks/queries/use-company";
 import { useEmployeeIdDropdownQuery, useCreateEmployeeIdMutation } from "@/hooks/queries/use-employees-query";
 import { AvailableEmployeeIdDialog } from "./available-employee-id-dialog";
 import { useDepartmentsQuery, useDesignationsQuery } from "@/hooks/queries/use-org";
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const emergencyContactSchema = z.object({
@@ -228,8 +225,8 @@ export function EmployeeForm({
 
   // Auto-assign or generate Employee ID
   useEffect(() => {
-    // Only proceed if it's a new employee registration and we have a company selected
-    if (isEdit || !companyId || isGeneratingId) return;
+    // Only proceed if we have a company selected
+    if (!companyId || isGeneratingId) return;
 
     // Reset employeeObjId and uniqueId if company has changed since last run
     if (prevCompanyIdRef.current !== companyId) {
@@ -565,36 +562,16 @@ export function EmployeeForm({
                   control={form.control}
                   name="doj"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="mb-2">D.O.J (Joining)</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal h-9 rounded-lg border-input bg-background/50 hover:bg-white transition-colors",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(parseISO(field.value), "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value ? parseISO(field.value) : undefined}
-                            onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <FormItem>
+                      <FormLabel>D.O.J (Joining)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          {...field} 
+                          value={field.value || ""} 
+                          className="h-9 rounded-lg border-input bg-background/50 hover:bg-white transition-colors focus:bg-white"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -740,36 +717,16 @@ export function EmployeeForm({
                   control={form.control}
                   name="dob"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="mb-2">Date of Birth</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal h-9 rounded-lg border-input bg-background/50 hover:bg-white transition-colors",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(parseISO(field.value), "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value ? parseISO(field.value) : undefined}
-                            onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          {...field} 
+                          value={field.value || ""} 
+                          className="h-9 rounded-lg border-input bg-background/50 hover:bg-white transition-colors focus:bg-white"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

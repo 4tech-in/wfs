@@ -97,3 +97,20 @@ export function useMarkAttendanceMutation() {
     },
   });
 }
+
+/**
+ * Hook to mark attendance for multiple users
+ */
+export function useUpdateMultipleAttendanceMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { userIds: string[]; date: string; status: string }) => 
+      attendanceService.updateMultipleAttendance(data),
+    onSuccess: () => {
+      // Invalidate attendance queries to refresh data
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.attendance.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.users.stats() });
+    },
+  });
+}

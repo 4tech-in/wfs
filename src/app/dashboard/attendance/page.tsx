@@ -5,6 +5,7 @@ import { RefreshCw, Upload, Plus, CalendarIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AttendanceUploadDialog } from "@/components/dashboard/attendance-upload-dialog"
 import { MarkLeaveDialog } from "@/components/dashboard/mark-leave-dialog"
+import { MarkMultipleAttendanceDialog } from "@/components/dashboard/mark-multiple-attendance-dialog"
 import { authStorage } from "@/lib/auth"
 import { useAttendanceWithSummaryQuery } from "@/hooks/queries/use-attendance"
 import { useCompanyDropdownQuery } from "@/hooks/queries/use-company"
@@ -68,9 +69,6 @@ export default function AttendancePage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-bold tracking-tight italic font-heading text-emerald-600">Attendance Log</h1>
-                    <p className="text-slate-500 text-sm font-medium">
-                        Monitor and manage daily attendance records and workforce punch logs.
-                    </p>
                 </div>
                 <div className="flex flex-wrap items-end gap-3 px-1">
                     <div className="flex flex-col gap-1.5">
@@ -131,6 +129,17 @@ export default function AttendancePage() {
                                 <Button variant="outline" className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95">
                                     <Plus className="h-4 w-4" />
                                     <span className="font-semibold text-sm">Mark Leave</span>
+                                </Button>
+                            }
+                        />
+                    )}
+
+                    {!isHr && (
+                        <MarkMultipleAttendanceDialog
+                            trigger={
+                                <Button variant="outline" className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95">
+                                    <UserCheck className="h-4 w-4" />
+                                    <span className="font-semibold text-sm">Mark Multiple</span>
                                 </Button>
                             }
                         />

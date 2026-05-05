@@ -4,7 +4,7 @@ import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useWatch } from "react-hook-form"
 import * as z from "zod"
-import { ChevronsUpDown, Search, X } from "lucide-react"
+import { ChevronsUpDown, Search, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -29,10 +29,13 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useEmployeesQuery } from "@/hooks/queries/use-employees-query"
+import { useEmployeesDropdownInfiniteQuery } from "@/hooks/queries/use-employees-query"
 import { useAttendancePoliciesQuery } from "@/hooks/queries/use-attendance-policies"
-import { AssignRosterDto } from "@/types/roster"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { useCompanyDropdownQuery } from "@/hooks/queries/use-company"
+import { employeeService } from "@/services/employee-service"
+import { AssignRosterDto, AttendancePolicyUser } from "@/types/roster"
+import { CompanyListItem } from "@/types/company"
+import { EmployeeDropdownItem } from "@/types/employee"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -42,8 +45,10 @@ import {
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { CalendarIcon } from "lucide-react"
+import { useDebounce } from "@/hooks/use-debounce"
 
 const formSchema = z.object({
+  companyId: z.string().optional(),
   employeeIds: z.array(z.string()).min(1, "Select at least one employee"),
   shiftId: z.string().min(1, "Select a shift"),
   startDate: z.string().min(1, "Select start date"),
@@ -60,16 +65,21 @@ const formSchema = z.object({
 interface RoasterFormProps {
   onSubmit: (data: AssignRosterDto) => void
   isLoading?: boolean
+  initialValues?: {
+    employeeIds: string[]
+    shiftId: string
+    startDate: string
+    endDate: string
+    companyId?: string
+  }
+  initialEmployees?: AttendancePolicyUser[]
 }
 
-export function RoasterForm({ onSubmit, isLoading }: RoasterFormProps) {
-  const { data: employeesData } = useEmployeesQuery({ limit: 100 })
-  const { data: policiesData } = useAttendancePoliciesQuery()
-  const [searchTerm, setSearchTerm] = React.useState("")
-
+export function RoasterForm({ onSubmit, isLoading, initialValues, initialEmployees }: RoasterFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: initialValues || {
+      companyId: "",
       employeeIds: [],
       shiftId: "",
       startDate: new Date().toISOString().split("T")[0],
@@ -77,20 +87,101 @@ export function RoasterForm({ onSubmit, isLoading }: RoasterFormProps) {
     },
   })
 
+  const selectedCompanyId = useWatch({
+    control: form.control,
+    name: "companyId",
+    defaultValue: ""
+  })
+
   const selectedEmployeeIds = useWatch({
     control: form.control,
     name: "employeeIds",
     defaultValue: []
   })
-  
-  
-  const filteredEmployees = React.useMemo(() => {
-    const employees = employeesData?.data || []
-    return employees.filter(emp => 
-      (emp.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(emp.uniqueId).includes(searchTerm)
-    )
-  }, [employeesData, searchTerm])
+
+  const [searchTerm, setSearchTerm] = React.useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
+
+  const { 
+    data: employeesData, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage,
+    isLoading: isLoadingEmployees
+  } = useEmployeesDropdownInfiniteQuery({ 
+    search: debouncedSearchTerm,
+    companyId: selectedCompanyId
+  })
+
+  const { data: policiesData } = useAttendancePoliciesQuery()
+  const { data: companiesData } = useCompanyDropdownQuery()
+  const [isSelectingAll, setIsSelectingAll] = React.useState(false)
+
+  const allEmployees = React.useMemo(() => {
+    return employeesData?.pages.flatMap(page => page.data) || []
+  }, [employeesData])
+
+  // Persistent mapping for selected employee names to prevent loss when filtering
+  const [selectedEmployeesMap, setSelectedEmployeesMap] = React.useState<Record<string, AttendancePolicyUser | EmployeeDropdownItem>>(() => {
+    const initialMap: Record<string, AttendancePolicyUser | EmployeeDropdownItem> = {}
+    if (initialEmployees) {
+      initialEmployees.forEach(emp => {
+        const id = emp._id
+        initialMap[id] = emp
+      })
+    }
+    return initialMap
+  })
+
+  // Reset form and selection map when initialValues change (i.e., when editing a different row)
+  React.useEffect(() => {
+    if (initialValues) {
+      form.reset(initialValues)
+    } else {
+      form.reset({
+        companyId: "",
+        employeeIds: [],
+        shiftId: "",
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: new Date().toISOString().split("T")[0],
+      })
+    }
+
+    const initialMap: Record<string, AttendancePolicyUser | EmployeeDropdownItem> = {}
+    if (initialEmployees) {
+      initialEmployees.forEach(emp => {
+        const id = emp._id
+        initialMap[id] = emp
+      })
+    }
+    setSelectedEmployeesMap(initialMap)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValues, initialEmployees])
+
+  React.useEffect(() => {
+    setSelectedEmployeesMap(prev => {
+      const newMap = { ...prev }
+      let changed = false
+      allEmployees.forEach(emp => {
+        const id = emp._id
+        if (selectedEmployeeIds.includes(id) && !newMap[id]) {
+          newMap[id] = emp
+          changed = true
+        }
+      })
+      return changed ? newMap : prev
+    })
+  }, [allEmployees, selectedEmployeeIds])
+
+  const handleScroll = React.useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+      if (scrollHeight - scrollTop - clientHeight < 40 && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage()
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage]
+  )
 
   const toggleEmployee = (id: string) => {
     const current = form.getValues("employeeIds")
@@ -102,13 +193,75 @@ export function RoasterForm({ onSubmit, isLoading }: RoasterFormProps) {
   }
 
   const removeEmployee = (id: string) => {
-    form.setValue("employeeIds", selectedEmployeeIds.filter(itemId => itemId !== id))
+    form.setValue("employeeIds", (selectedEmployeeIds || []).filter(itemId => itemId !== id))
   }
 
+  const handleSelectAll = async () => {
+    try {
+      setIsSelectingAll(true)
+      // Fetch all employees for the selected company with a large limit
+      const response = await employeeService.getDropdown({ 
+        companyId: selectedCompanyId,
+        limit: 1000 
+      })
+      
+      if (response?.data) {
+        const allIds = response.data.map(emp => emp._id)
+        form.setValue("employeeIds", allIds)
+        
+        // Update selection map
+        setSelectedEmployeesMap(prev => {
+          const newMap = { ...prev }
+          response.data.forEach(emp => {
+            newMap[emp._id] = emp
+          })
+          return newMap
+        })
+      }
+    } catch (error) {
+      console.error("Failed to select all employees:", error)
+    } finally {
+      setIsSelectingAll(false)
+    }
+  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Company Selection */}
+        <FormField
+          control={form.control}
+          name="companyId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Select Company (Optional)</FormLabel>
+              <Select 
+                onValueChange={(val) => {
+                  field.onChange(val)
+                  // Clear employees when company changes
+                  form.setValue("employeeIds", [])
+                }} 
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger className="rounded-xl border-slate-200">
+                    <SelectValue placeholder="Select a company to filter employees" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all" className="rounded-lg font-medium text-slate-500">All Companies</SelectItem>
+                  {companiesData?.data?.map((company: CompanyListItem) => (
+                    <SelectItem key={company._id} value={company._id} className="rounded-lg">
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Multi-select Employees */}
         <FormField
           control={form.control}
@@ -116,12 +269,12 @@ export function RoasterForm({ onSubmit, isLoading }: RoasterFormProps) {
           render={() => (
             <FormItem className="flex flex-col">
               <FormLabel>Select Employees</FormLabel>
-              <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 border rounded-xl bg-slate-50/50">
+              <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] max-h-[100px] overflow-y-auto p-2 border rounded-xl bg-slate-50/50 scrollbar-thin scrollbar-thumb-slate-200">
                 {selectedEmployeeIds.length === 0 && (
                   <span className="text-slate-400 text-sm py-1 px-2">No employees selected</span>
                 )}
                 {selectedEmployeeIds.map((id) => {
-                  const emp = employeesData?.data.find(e => (e._id || e.id) === id)
+                  const emp = allEmployees.find(e => e._id === id) || selectedEmployeesMap[id]
                   return (
                     <Badge 
                       key={id} 
@@ -143,7 +296,13 @@ export function RoasterForm({ onSubmit, isLoading }: RoasterFormProps) {
                     variant="outline" 
                     className="w-full justify-between rounded-xl border-slate-200"
                   >
-                    Select Employees
+                    <span className="truncate">
+                      {selectedEmployeeIds.length === 0 
+                        ? "Select Employees" 
+                        : selectedEmployeeIds.length === 1 
+                          ? (allEmployees.find(e => e._id === selectedEmployeeIds[0])?.name || selectedEmployeesMap[selectedEmployeeIds[0]]?.name || "1 employee selected")
+                          : `${selectedEmployeeIds.length} employees selected`}
+                    </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -157,32 +316,68 @@ export function RoasterForm({ onSubmit, isLoading }: RoasterFormProps) {
                       className="h-8 border-none focus-visible:ring-0 px-0 rounded-none bg-transparent"
                     />
                   </div>
-                  <ScrollArea className="h-48">
-                    <div className="p-1">
-                      {filteredEmployees.map((employee) => (
-                        <div
-                          key={employee._id || employee.id}
-                          className="flex items-center space-x-2 p-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
-                          onClick={() => toggleEmployee(employee._id || employee.id)}
+                  <div
+                    className="h-48 overflow-y-auto p-1"
+                    onScroll={handleScroll}
+                  >
+                      <div className="flex items-center justify-between border-b px-1 py-1 mb-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-[11px] text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md flex-1 font-semibold"
+                          onClick={handleSelectAll}
+                          disabled={isSelectingAll}
                         >
-                          <Checkbox 
-                            checked={selectedEmployeeIds.includes(employee._id || employee.id)}
-                            onCheckedChange={() => toggleEmployee(employee._id || employee.id)}
-                            className="rounded-md"
-                          />
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">{employee.name || "Unnamed"}</span>
-                            <span className="text-xs text-slate-500">{employee.uniqueId}</span>
-                          </div>
+                          {isSelectingAll ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          ) : null}
+                          Select All Employees {selectedCompanyId && selectedCompanyId !== "all" ? "of Company" : ""}
+                        </Button>
+                      </div>
+
+                    {allEmployees.map((employee) => (
+                      <div
+                        key={employee._id}
+                        className="flex items-center space-x-2 p-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                        onClick={() => toggleEmployee(employee._id)}
+                      >
+                        <Checkbox 
+                          checked={selectedEmployeeIds.includes(employee._id)}
+                          onCheckedChange={() => toggleEmployee(employee._id)}
+                          className="rounded-md"
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{employee.name || "Unnamed"}</span>
+                          <span className="text-xs text-slate-500">
+                            {('employeeObjId' in employee) 
+                              ? (employee as AttendancePolicyUser).employeeObjId?.employeeId 
+                              : (employee as EmployeeDropdownItem).employeeId} 
+                            {" | "} {employee.uniqueId}
+                          </span>
                         </div>
-                      ))}
-                      {filteredEmployees.length === 0 && (
-                        <div className="p-4 text-center text-sm text-slate-500">
-                          No employees found
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
+                      </div>
+                    ))}
+
+                    {isFetchingNextPage && (
+                      <div className="py-2 flex items-center justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                      </div>
+                    )}
+
+                    {allEmployees.length === 0 && !isLoadingEmployees && (
+                      <div className="p-4 text-center text-sm text-slate-500">
+                        No employees found
+                      </div>
+                    )}
+
+                    {isLoadingEmployees && allEmployees.length === 0 && (
+                      <div className="p-4 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading...
+                      </div>
+                    )}
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
               <FormMessage />

@@ -154,6 +154,18 @@ export const employeeService = {
       throw error;
     }
   },
+  
+  /**
+   * Get all deleted employees
+   */
+  getDeletedUsers: async (): Promise<Employee[]> => {
+    try {
+      return await apiClient.get<void, Employee[]>('/user/get-deleted-users');
+    } catch (error: unknown) {
+      toast.error('Failed to fetch deleted employees');
+      throw error;
+    }
+  },
 };
 
 export default employeeService;

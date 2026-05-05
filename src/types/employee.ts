@@ -87,6 +87,7 @@ export interface Employee {
   remarks?: string;
   createdAt?: string;
   updatedAt?: string;
+  deletedAt?: string;
 }
 
 export interface PaginationInfo {

@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import { employeeService } from '@/services/employee-service';
 import { QUERY_KEYS } from '@/constants/query-keys';
-import { RegisterEmployeeDto, UpdateEmployeeDto, EmployeeQueryParams, EmployeesResponse, EmployeeStatsResponse } from '@/types/employee';
+import { RegisterEmployeeDto, UpdateEmployeeDto, EmployeeQueryParams, EmployeesResponse, EmployeeStatsResponse, Employee } from '@/types/employee';
 
 /**
  * Hook to fetch employee stats for the dashboard
@@ -157,5 +157,15 @@ export function useCreateEmployeeIdMutation() {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.users.all, 'employee-id-dropdown'] });
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.users.all, 'employee-id'] });
     },
+  });
+}
+
+/**
+ * Hook to fetch all deleted employees
+ */
+export function useDeletedEmployeesQuery() {
+  return useQuery<Employee[]>({
+    queryKey: [...QUERY_KEYS.users.all, 'deleted'],
+    queryFn: () => employeeService.getDeletedUsers(),
   });
 }

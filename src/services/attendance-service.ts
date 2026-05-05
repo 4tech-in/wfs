@@ -117,6 +117,20 @@ export const attendanceService = {
       throw error;
     }
   },
+  
+  /**
+   * Quick update attendance status for multiple users
+   * @param data - The mark attendance data for multiple users
+   */
+  updateMultipleAttendance: async (data: { userIds: string[]; date: string; status: string }): Promise<void> => {
+    try {
+      await apiClient.put('/attendance/update/multiple', data);
+      toast.success('Multiple attendance marked successfully');
+    } catch (error: unknown) {
+      toast.error('Failed to mark multiple attendance');
+      throw error;
+    }
+  },
 };
 
 export default attendanceService;

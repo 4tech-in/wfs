@@ -25,6 +25,8 @@ export interface AssignRosterDto {
 export interface AssignAttendancePolicyDto {
   userIds: string[];
   attendancePolicyId: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface RosterResponse {
@@ -55,10 +57,17 @@ export interface AttendancePolicyUser {
   companyId?: string;
   departmentId?: string;
   designationId?: string;
-  employeeObjId?: string;
+  employeeObjId?: {
+    _id: string;
+    employeeId: string;
+  };
   maritalStatus?: string;
   department?: string;
   designation?: string;
+  attendancePolicyStartDate?: string;
+  attendancePolicyEndDate?: string;
+  employeeId?: string;
+  otherName?: string;
 }
 
 export interface AttendancePolicyUserResponse {

@@ -13,26 +13,34 @@ import {
 } from "@/components/ui/dialog"
 import { RoasterForm } from "./roaster-form"
 import { useAssignAttendancePolicyMutation } from "@/hooks/queries/use-roster"
-import { AssignRosterDto } from "@/types/roster"
-import { useQueryClient } from "@tanstack/react-query"
-import { QUERY_KEYS } from "@/constants/query-keys"
+import { AssignRosterDto, AttendancePolicyUser } from "@/types/roster"
 
 interface RoasterDialogProps {
   trigger?: React.ReactNode
+  initialValues?: {
+    employeeIds: string[]
+    shiftId: string
+    startDate: string
+    endDate: string
+    companyId?: string
+  }
+  title?: string
+  description?: string
+  initialEmployees?: AttendancePolicyUser[]
 }
 
-export function RoasterDialog({ trigger }: RoasterDialogProps) {
+export function RoasterDialog({ trigger, initialValues, title, description, initialEmployees }: RoasterDialogProps) {
   const [open, setOpen] = React.useState(false)
   const assignMutation = useAssignAttendancePolicyMutation()
-  const queryClient = useQueryClient()
 
   const onSubmit = async (data: AssignRosterDto) => {
     try {
       await assignMutation.mutateAsync({
         userIds: data.employeeIds,
-        attendancePolicyId: data.shiftId
+        attendancePolicyId: data.shiftId,
+        startDate: data.startDate,
+        endDate: data.endDate,
       })
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.rosters.all })
       setOpen(false)
     } catch {
       // Error handled by mutation toast or service
@@ -51,14 +59,18 @@ export function RoasterDialog({ trigger }: RoasterDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto rounded-2xl border-none shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-slate-900 italic font-heading">Assign Roster</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-slate-900 italic font-heading">
+            {title || "Assign Roster"}
+          </DialogTitle>
           <DialogDescription className="text-slate-500 font-medium">
-            Select employees, a shift, and a date range to assign a roster.
+            {description || "Select employees, a shift, and a date range to assign a roster."}
           </DialogDescription>
         </DialogHeader>
         <RoasterForm 
           onSubmit={onSubmit} 
           isLoading={assignMutation.isPending} 
+          initialValues={initialValues}
+          initialEmployees={initialEmployees}
         />
       </DialogContent>
     </Dialog>

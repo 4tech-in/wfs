@@ -1,13 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { RefreshCw, Plus, ClipboardList, Clock, CheckCircle2, XCircle } from "lucide-react"
+import { RefreshCw, Plus, ClipboardList, Clock, CheckCircle2, XCircle, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MarkLeaveDialog } from "@/components/dashboard/mark-leave-dialog"
 import { useLeavesQuery } from "@/hooks/queries/use-leave"
 import { PaginationState } from "@tanstack/react-table"
 import { LeaveTable } from "./leave-table"
 import { Card } from "@/components/ui/card"
+import { toast } from "sonner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +45,12 @@ export default function LeaveManagement() {
 
     const leaves = data?.data || []
     
+    const handleShareLink = () => {
+        const link = `${window.location.origin}/employee-leave-apply`
+        navigator.clipboard.writeText(link)
+        toast.success("Leave apply link copied to clipboard!")
+    }
+
     // Simple stats calculation for the current view
     const stats = {
         total: leaves.length,
@@ -132,6 +139,15 @@ export default function LeaveManagement() {
                         title="Refresh Data"
                     >
                         <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        onClick={handleShareLink}
+                        className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95 border-none"
+                    >
+                        <Share2 className="h-4 w-4" />
+                        <span className="font-bold text-sm">Share Apply Link</span>
                     </Button>
 
                     {!isHr && (

@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { RefreshCw, XCircle } from "lucide-react"
+import { RefreshCw, XCircle, Trash2 } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useDataTable } from "@/hooks/use-data-table"
 import { useEmployeesQuery } from "@/hooks/queries/use-employees-query"
@@ -132,6 +133,12 @@ export default function EmployeeMaster() {
             title="Bulk Upload Employees"
             description="Upload your employee data using an Excel or CSV file."
           />
+          <Link href="/dashboard/employee/deleted">
+            <Button variant="outline" className="border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-all rounded-xl flex items-center gap-2">
+              <Trash2 className="h-4 w-4" />
+              View Deleted
+            </Button>
+          </Link>
           <RegisterEmployeeDialog />
         </div>
       </div>

@@ -1,5 +1,7 @@
 "use client"
 
+import * as React from "react"
+import { PaginationState } from "@tanstack/react-table"
 import { RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { RoasterDialog } from "@/components/dashboard/roaster-dialog"
@@ -7,7 +9,15 @@ import { RoasterTable } from "./roaster-table"
 import { useAssignAttendancePolicyQuery } from "@/hooks/queries/use-roster"
 
 export default function RoasterPage() {
-    const { data, isLoading, refetch, isFetching } = useAssignAttendancePolicyQuery()
+    const [pagination, setPagination] = React.useState<PaginationState>({
+        pageIndex: 0,
+        pageSize: 10,
+    })
+
+    const { data, isLoading, refetch, isFetching } = useAssignAttendancePolicyQuery(
+        pagination.pageIndex + 1,
+        pagination.pageSize
+    )
 
     return (
         <div className="flex flex-col gap-6 p-2 md:p-8">
@@ -36,7 +46,11 @@ export default function RoasterPage() {
 
             <RoasterTable 
                 data={data?.data || []} 
-                isLoading={isLoading} 
+                isLoading={isLoading}
+                pagination={pagination}
+                onPaginationChange={setPagination}
+                totalItems={data?.pagination?.total}
+                pageCount={data?.pagination?.totalPages}
             />
         </div>
     )

@@ -45,10 +45,25 @@ export default function LeaveManagement() {
 
     const leaves = data?.data || []
     
-    const handleShareLink = () => {
+    const handleShareLink = async () => {
         const link = `${window.location.origin}/employee-leave-apply`
-        navigator.clipboard.writeText(link)
-        toast.success("Leave apply link copied to clipboard!")
+        
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Employee Leave Application',
+                    text: 'Apply for leave through this link',
+                    url: link,
+                })
+            } catch (err) {
+                if ((err as Error).name !== 'AbortError') {
+                    console.error('Error sharing:', err)
+                }
+            }
+        } else {
+            navigator.clipboard.writeText(link)
+            toast.success("Leave apply link copied to clipboard!")
+        }
     }
 
     // Simple stats calculation for the current view
@@ -147,7 +162,7 @@ export default function LeaveManagement() {
                         className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95 border-none"
                     >
                         <Share2 className="h-4 w-4" />
-                        <span className="font-bold text-sm">Share Apply Link</span>
+                        <span className="font-bold text-sm">Share Leave Apply Link</span>
                     </Button>
 
                     {!isHr && (

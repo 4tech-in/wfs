@@ -10,13 +10,19 @@ import { LeaveTable } from "./leave-table"
 import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ChevronDown, Calendar as CalendarIcon } from "lucide-react"
 import { authStorage } from "@/lib/auth"
+import {
+    WhatsappShareButton,
+    WhatsappIcon,
+    TelegramShareButton,
+    TelegramIcon,
+} from 'next-share'
 
 const months = [
     "January", "February", "March", "April", "May", "June",
@@ -36,6 +42,14 @@ export default function LeaveManagement() {
     const monthStr = (currentDate.getMonth() + 1).toString().padStart(2, '0')
     const yearStr = currentDate.getFullYear().toString()
 
+    const [shareUrl, setShareUrl] = React.useState("")
+
+    React.useEffect(() => {
+        if (typeof window !== "undefined") {
+            setShareUrl(`${window.location.origin}/employee-leave-apply`)
+        }
+    }, [])
+
     const { data, isLoading, refetch, isFetching } = useLeavesQuery(
         pagination.pageIndex + 1,
         pagination.pageSize,
@@ -44,27 +58,6 @@ export default function LeaveManagement() {
     )
 
     const leaves = data?.data || []
-    
-    const handleShareLink = async () => {
-        const link = `${window.location.origin}/employee-leave-apply`
-        
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: 'Employee Leave Application',
-                    text: 'Apply for leave through this link',
-                    url: link,
-                })
-            } catch (err) {
-                if ((err as Error).name !== 'AbortError') {
-                    console.error('Error sharing:', err)
-                }
-            }
-        } else {
-            navigator.clipboard.writeText(link)
-            toast.success("Leave apply link copied to clipboard!")
-        }
-    }
 
     // Simple stats calculation for the current view
     const stats = {
@@ -97,8 +90,8 @@ export default function LeaveManagement() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="max-h-64 overflow-y-auto rounded-xl border-slate-100 shadow-xl">
                                     {months.map((month, idx) => (
-                                        <DropdownMenuItem 
-                                            key={month} 
+                                        <DropdownMenuItem
+                                            key={month}
                                             onClick={() => {
                                                 const newDate = new Date(currentDate)
                                                 newDate.setMonth(idx)
@@ -128,8 +121,8 @@ export default function LeaveManagement() {
                                         }
                                         return years;
                                     })().reverse().map((year) => (
-                                        <DropdownMenuItem 
-                                            key={year} 
+                                        <DropdownMenuItem
+                                            key={year}
                                             onClick={() => {
                                                 const newDate = new Date(currentDate)
                                                 newDate.setFullYear(year)
@@ -156,14 +149,63 @@ export default function LeaveManagement() {
                         <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                     </Button>
 
-                    <Button
-                        variant="outline"
-                        onClick={handleShareLink}
-                        className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95 border-none"
-                    >
-                        <Share2 className="h-4 w-4" />
-                        <span className="font-bold text-sm">Share Leave Apply Link</span>
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"
+                            >
+                                <Share2 className="h-4 w-4" />
+                                <span className="font-bold text-sm">Share Leave Apply Link</span>
+                                <ChevronDown className="h-3 w-3 text-slate-400" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="p-2 rounded-xl border-slate-100 shadow-xl min-w-[200px] flex flex-col gap-1">
+                            <div className="px-2 py-1.5 mb-1">
+                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Platform</p>
+                            </div>
+
+                            <DropdownMenuItem asChild>
+                                <WhatsappShareButton
+                                    url={shareUrl}
+                                    title={'Apply for leave at Goyal Enterprises:'}
+                                    separator=" "
+                                >
+                                    <div className="flex items-center gap-3 px-2 py-2 hover:bg-emerald-50 rounded-lg cursor-pointer transition-colors w-full outline-none">
+                                        <WhatsappIcon size={24} round />
+                                        <span className="text-sm font-bold text-slate-700">WhatsApp</span>
+                                    </div>
+                                </WhatsappShareButton>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem asChild>
+                                <TelegramShareButton
+                                    url={shareUrl}
+                                    title={'Apply for leave at Goyal Enterprises:'}
+                                >
+                                    <div className="flex items-center gap-3 px-2 py-2 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors w-full outline-none">
+                                        <TelegramIcon size={24} round />
+                                        <span className="text-sm font-bold text-slate-700">Telegram</span>
+                                    </div>
+                                </TelegramShareButton>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                                onClick={() => {
+                                    if (shareUrl) {
+                                        navigator.clipboard.writeText(shareUrl)
+                                        toast.success("Link copied to clipboard!")
+                                    }
+                                }}
+                                className="flex items-center gap-3 px-2 py-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border-t border-slate-50 mt-1 outline-none"
+                            >
+                                <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center">
+                                    <Share2 className="h-3 w-3 text-slate-500" />
+                                </div>
+                                <span className="text-sm font-bold text-slate-700">Copy Link</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
                     {!isHr && (
                         <MarkLeaveDialog

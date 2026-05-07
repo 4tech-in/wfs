@@ -1,12 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { RefreshCw, Upload, Plus, CalendarIcon } from "lucide-react"
+import { RefreshCw, Upload, Plus, CalendarIcon, ClipboardCheck } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { AttendanceUploadDialog } from "@/components/dashboard/attendance-upload-dialog"
 import { MarkLeaveDialog } from "@/components/dashboard/mark-leave-dialog"
 import { MarkMultipleAttendanceDialog } from "@/components/dashboard/mark-multiple-attendance-dialog"
+import { MarkManualAttendanceDialog } from "@/components/dashboard/mark-attendance-dialog"
 import { authStorage } from "@/lib/auth"
 import { useAttendanceWithSummaryQuery } from "@/hooks/queries/use-attendance"
 import { useCompanyDropdownQuery } from "@/hooks/queries/use-company"
@@ -147,6 +148,15 @@ function AttendanceContent() {
                             }
                         />
                     )}
+
+                    <MarkManualAttendanceDialog
+                        trigger={
+                            <Button variant="outline" className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95">
+                                <ClipboardCheck className="h-4 w-4" />
+                                <span className="font-semibold text-sm">Mark Attendance</span>
+                            </Button>
+                        }
+                    />
 
                     {!isHr && (
                         <MarkMultipleAttendanceDialog

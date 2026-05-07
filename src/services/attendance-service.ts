@@ -1,5 +1,5 @@
 import apiClient from '@/lib/api-client';
-import { AttendanceResponse, AttendanceDashboardCount, AttendanceWithSummaryResponse, MarkManualAttendanceDto } from '@/types/attendance';
+import { AttendanceResponse, AttendanceDashboardCount, AttendanceWithSummaryResponse, MarkManualAttendanceDto, MarkAttendanceDto } from '@/types/attendance';
 import { toast } from 'sonner';
 
 /**
@@ -111,7 +111,7 @@ export const attendanceService = {
    * Quick update attendance status
    * @param data - The mark attendance data
    */
-  markAttendance: async (data: { userId: string; date: string; status: 'Present' | 'Absent' }): Promise<void> => {
+  markAttendance: async (data: MarkAttendanceDto): Promise<void> => {
     try {
       await apiClient.put('/attendance/update', data);
       toast.success(`Attendance updated to ${data.status}`);

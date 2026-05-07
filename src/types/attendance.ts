@@ -20,9 +20,11 @@ export interface MarkManualAttendanceDto {
  * Payload for marking quick attendance from dashboard
  */
 export interface MarkAttendanceDto {
-  userId: string;
+  userIds: string[];
   date: string;
   status: 'Present' | 'Absent';
+  punchIn?: string | null;
+  punchOut?: string | null;
 }
 
 /**
@@ -124,4 +126,16 @@ export interface AttendanceWithSummaryResponse {
   limit: number;
   startDate: string;
   endDate: string;
+}
+
+/**
+ * Initial data for manual attendance dialog
+ */
+export interface ManualAttendanceInitialData {
+  companyId?: string;
+  employeeId?: string;
+  date?: Date;
+  status?: string;
+  punchIn?: string | null;
+  punchOut?: string | null;
 }

@@ -42,7 +42,7 @@ import { useMarkManualAttendanceMutation } from "@/hooks/queries/use-attendance"
 import { InfiniteScrollSelect } from "@/components/ui/infinite-scroll-select"
 import { EmployeeDropdownItem } from "@/types/employee"
 import { CompanyListItem } from "@/types/company"
-import { ManualAttendanceStatus } from "@/types/attendance"
+import { ManualAttendanceStatus, ManualAttendanceInitialData } from "@/types/attendance"
 
 const attendanceSchema = z.object({
   companyId: z.string().min(1, "Company is required"),
@@ -72,11 +72,21 @@ const MINUTES = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0
 const PERIODS = ["AM", "PM"]
 
 interface MarkManualAttendanceDialogProps {
-  trigger?: React.ReactNode
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  initialData?: ManualAttendanceInitialData;
 }
 
-export function MarkManualAttendanceDialog({ trigger }: MarkManualAttendanceDialogProps) {
-  const [open, setOpen] = React.useState(false)
+export function MarkManualAttendanceDialog({ 
+  trigger, 
+  open: controlledOpen, 
+  onOpenChange: controlledOnOpenChange,
+  initialData
+}: MarkManualAttendanceDialogProps) {
+  const [internalOpen, setInternalOpen] = React.useState(false)
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen
+  const setOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : setInternalOpen
   const [companySearch, setCompanySearch] = React.useState("")
   const [employeeSearch, setEmployeeSearch] = React.useState("")
   
@@ -99,16 +109,16 @@ export function MarkManualAttendanceDialog({ trigger }: MarkManualAttendanceDial
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceSchema),
     defaultValues: {
-      companyId: "",
-      employeeId: "",
-      date: new Date(),
-      status: "Present",
-      punchInHour: "09",
-      punchInMinute: "00",
-      punchInPeriod: "AM",
-      punchOutHour: "06",
-      punchOutMinute: "00",
-      punchOutPeriod: "PM",
+      companyId: initialData?.companyId || "",
+      employeeId: initialData?.employeeId || "",
+      date: initialData?.date || new Date(),
+      status: initialData?.status || "Present",
+      punchInHour: initialData?.punchIn ? format(new Date(initialData.punchIn), "hh") : "09",
+      punchInMinute: initialData?.punchIn ? format(new Date(initialData.punchIn), "mm") : "00",
+      punchInPeriod: initialData?.punchIn ? format(new Date(initialData.punchIn), "aa") : "AM",
+      punchOutHour: initialData?.punchOut ? format(new Date(initialData.punchOut), "hh") : "06",
+      punchOutMinute: initialData?.punchOut ? format(new Date(initialData.punchOut), "mm") : "00",
+      punchOutPeriod: initialData?.punchOut ? format(new Date(initialData.punchOut), "aa") : "PM",
     },
   })
 
@@ -177,12 +187,30 @@ export function MarkManualAttendanceDialog({ trigger }: MarkManualAttendanceDial
     }
   }
 
-  // Clear employee when company changes
+  // Pre-fill form when initialData changes
   React.useEffect(() => {
-    if (selectedCompanyId) {
+    if (initialData && open) {
+      form.reset({
+        companyId: initialData.companyId || "",
+        employeeId: initialData.employeeId || "",
+        date: initialData.date || new Date(),
+        status: initialData.status || "Present",
+        punchInHour: initialData.punchIn ? format(new Date(initialData.punchIn), "hh") : "09",
+        punchInMinute: initialData.punchIn ? format(new Date(initialData.punchIn), "mm") : "00",
+        punchInPeriod: initialData.punchIn ? format(new Date(initialData.punchIn), "aa") : "AM",
+        punchOutHour: initialData.punchOut ? format(new Date(initialData.punchOut), "hh") : "06",
+        punchOutMinute: initialData.punchOut ? format(new Date(initialData.punchOut), "mm") : "00",
+        punchOutPeriod: initialData.punchOut ? format(new Date(initialData.punchOut), "aa") : "PM",
+      })
+    }
+  }, [initialData, open, form])
+
+  // Clear employee when company changes if not from initialData
+  React.useEffect(() => {
+    if (selectedCompanyId && !initialData) {
       form.setValue("employeeId", "")
     }
-  }, [selectedCompanyId, form])
+  }, [selectedCompanyId, form, initialData])
 
   const status = useWatch({
     control: form.control,

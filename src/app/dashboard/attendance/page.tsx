@@ -12,6 +12,7 @@ import { authStorage } from "@/lib/auth"
 import { useAttendanceWithSummaryQuery } from "@/hooks/queries/use-attendance"
 import { useCompanyDropdownQuery } from "@/hooks/queries/use-company"
 import { PaginationState } from "@tanstack/react-table"
+import { ManualAttendanceInitialData } from "@/types/attendance"
 import { AttendanceTable } from "./attendance-table"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
@@ -60,6 +61,10 @@ function AttendanceContent() {
     const [companyId, setCompanyId] = React.useState<string>(urlCompanyId || "all")
     const [search, setSearch] = React.useState("")
     const [debouncedSearch, setDebouncedSearch] = React.useState("")
+    const [manualAttendance, setManualAttendance] = React.useState<{
+        open: boolean;
+        initialData?: ManualAttendanceInitialData;
+    }>({ open: false })
 
     React.useEffect(() => {
         const timer = setTimeout(() => {
@@ -175,6 +180,9 @@ function AttendanceContent() {
                     )}
 
                     <MarkManualAttendanceDialog
+                        open={manualAttendance.open}
+                        onOpenChange={(open) => setManualAttendance(prev => ({ ...prev, open }))}
+                        initialData={manualAttendance.initialData}
                         trigger={
                             <Button variant="outline" className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95">
                                 <ClipboardCheck className="h-4 w-4" />
@@ -266,6 +274,7 @@ function AttendanceContent() {
                 onPaginationChange={setPagination}
                 totalItems={data?.total}
                 selectedDate={date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")}
+                onMarkManual={(initialData) => setManualAttendance({ open: true, initialData })}
             />
         </div>
     )

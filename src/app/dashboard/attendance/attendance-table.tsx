@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { DataTable } from "@/components/ui/data-table"
-import { Attendance, UserAttendanceItem } from "@/types/attendance"
+import { Attendance, UserAttendanceItem, ManualAttendanceInitialData } from "@/types/attendance"
 import { format } from "date-fns"
 import { PaginationState } from "@tanstack/react-table"
 import { useMarkAttendanceMutation } from "@/hooks/queries/use-attendance"
@@ -37,6 +37,7 @@ interface AttendanceTableProps {
   totalItems?: number
   hideSearch?: boolean
   selectedDate?: string
+  onMarkManual?: (initialData: ManualAttendanceInitialData) => void
 }
 
 export function AttendanceTable({ 
@@ -46,7 +47,8 @@ export function AttendanceTable({
   onPaginationChange,
   totalItems,
   hideSearch = false,
-  selectedDate = format(new Date(), "yyyy-MM-dd")
+  selectedDate = format(new Date(), "yyyy-MM-dd"),
+  onMarkManual
 }: AttendanceTableProps) {
   const markAttendanceMutation = useMarkAttendanceMutation()
 
@@ -262,11 +264,26 @@ export function AttendanceTable({
 
         const handleAction = (status: 'Present' | 'Absent') => {
           if (!user?._id) return;
-          markAttendanceMutation.mutate({
-            userId: user._id,
-            date: recordDate,
-            status: status
-          });
+          
+          const punchIn = attendance?.punchIn;
+          const punchOut = attendance?.punchOut;
+
+          if (punchIn || punchOut) {
+            markAttendanceMutation.mutate({
+              userIds: [user._id],
+              date: recordDate,
+              status: status,
+              punchIn,
+              punchOut
+            });
+          } else {
+            onMarkManual?.({
+              employeeId: user._id,
+              companyId: user.company?._id,
+              date: new Date(recordDate),
+              status: status
+            });
+          }
         };
 
         return (

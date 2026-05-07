@@ -1,13 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { 
-  CalendarIcon, 
-  Loader2, 
-  X, 
-  UserCheck, 
-  Search, 
-  Check, 
+import {
+  CalendarIcon,
+  Loader2,
+  X,
+  UserCheck,
+  Search,
+  Check,
   ChevronsUpDown,
   CheckCircle2
 } from "lucide-react"
@@ -73,7 +73,7 @@ interface MarkMultipleAttendanceDialogProps {
   trigger?: React.ReactNode
 }
 
-const ATTENDANCE_STATUSES = ["Present", "Absent", "On Leave", "Half Day"]
+const ATTENDANCE_STATUSES = ["Present", "Absent", "Half Day", "Holiday"]
 
 export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendanceDialogProps) {
   const [open, setOpen] = React.useState(false)
@@ -111,7 +111,7 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
     hasNextPage,
     isFetchingNextPage,
     isLoading: isLoadingEmployees
-  } = useEmployeesDropdownInfiniteQuery({ 
+  } = useEmployeesDropdownInfiniteQuery({
     search: debouncedSearch,
     companyId: selectedCompanyId === "all" ? undefined : selectedCompanyId
   }, open)
@@ -124,15 +124,15 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
   const handleSelectAll = async () => {
     try {
       setIsSelectingAll(true)
-      const response = await employeeService.getDropdown({ 
+      const response = await employeeService.getDropdown({
         companyId: selectedCompanyId === "all" ? undefined : selectedCompanyId,
-        limit: 1000 
+        limit: 1000
       })
-      
+
       if (response?.data) {
         const allIds = response.data.map(emp => emp._id)
         form.setValue("userIds", allIds)
-        
+
         setSelectedEmployeesMap(prev => {
           const newMap = { ...prev }
           response.data.forEach(emp => {
@@ -190,14 +190,14 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent 
+      <DialogContent
         showCloseButton={false}
         className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl rounded-[28px] bg-white/95 backdrop-blur-xl"
       >
         <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
-        
+
         <DialogHeader className="p-8 pb-0 relative z-10">
-          <button 
+          <button
             onClick={() => setOpen(false)}
             className="absolute top-6 right-6 text-slate-300 hover:text-slate-900 transition-all p-2 rounded-xl hover:bg-slate-50 z-50"
           >
@@ -220,11 +220,11 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-xs font-black text-slate-400 uppercase tracking-widest">Company</FormLabel>
-                  <Select 
+                  <Select
                     onValueChange={(val) => {
                       field.onChange(val)
                       form.setValue("userIds", [])
-                    }} 
+                    }}
                     value={field.value}
                   >
                     <FormControl>
@@ -260,14 +260,14 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
                     {selectedUserIds.map((id) => {
                       const emp = allEmployees.find(e => e._id === id) || selectedEmployeesMap[id]
                       return (
-                        <Badge 
-                          key={id} 
-                          variant="secondary" 
+                        <Badge
+                          key={id}
+                          variant="secondary"
                           className="bg-white border-slate-100 text-slate-700 hover:bg-slate-100 flex items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-bold"
                         >
                           {emp?.name || "Employee"}
-                          <X 
-                            className="h-3 w-3 cursor-pointer text-slate-300 hover:text-rose-500" 
+                          <X
+                            className="h-3 w-3 cursor-pointer text-slate-300 hover:text-rose-500"
                             onClick={() => removeEmployee(id)}
                           />
                         </Badge>
@@ -276,13 +276,13 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="h-12 w-full justify-between rounded-xl border-slate-200 bg-white/50 hover:bg-white text-xs font-bold text-slate-600 shadow-sm"
                       >
                         <span className="truncate italic">
-                          {selectedUserIds.length === 0 
-                            ? "Click to select employees..." 
+                          {selectedUserIds.length === 0
+                            ? "Click to select employees..."
                             : `${selectedUserIds.length} employees selected`}
                         </span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -300,7 +300,7 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
                           />
                         </div>
                       </div>
-                      <div 
+                      <div
                         className="h-48 overflow-y-auto p-1 scrollbar-thin"
                         onScroll={handleScroll}
                       >

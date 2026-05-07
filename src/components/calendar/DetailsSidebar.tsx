@@ -18,13 +18,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Reminder } from '@/types/reminder';
-import { Bell, Clock } from 'lucide-react';
+import { Bell, Clock, Users, UserCheck, UserX, UserMinus, AlertCircle } from 'lucide-react';
+import { AttendanceDashboardCount } from '@/types/attendance';
+import { Progress } from '@/components/ui/progress';
 
 interface DetailsSidebarProps {
   selectedDate: Date | null;
   onClose: () => void;
   data?: CalendarDay;
   reminders?: Reminder[];
+  attendanceStats?: AttendanceDashboardCount;
   onUpdate: (data: {
     dayType: 'working' | 'holiday';
     isNationalHoliday: boolean;
@@ -39,6 +42,7 @@ export const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
   onClose,
   data,
   reminders = [],
+  attendanceStats,
   onUpdate,
   isLoading
 }) => {
@@ -115,6 +119,56 @@ export const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                 {data?.description || (data?.dayType === 'holiday' ? 'Republic Day' : 'Standard Working Day')}
               </h3>
             </div>
+
+            {/* Attendance Analytics */}
+            {attendanceStats && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Users className="h-3 w-3" />
+                    Attendance Analytics ({attendanceStats.totalUsers} Total)
+                  </h4>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm space-y-2">
+                    <div className="flex items-center justify-between">
+                      <UserCheck className="h-4 w-4 text-emerald-500" />
+                      <span className="text-lg font-black text-slate-900">{attendanceStats.present}</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Present</p>
+                    <Progress value={(attendanceStats.present / attendanceStats.totalUsers) * 100} className="h-1 bg-emerald-100" />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm space-y-2">
+                    <div className="flex items-center justify-between">
+                      <UserX className="h-4 w-4 text-rose-500" />
+                      <span className="text-lg font-black text-slate-900">{attendanceStats.absent}</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Absent</p>
+                    <Progress value={(attendanceStats.absent / attendanceStats.totalUsers) * 100} className="h-1 bg-rose-100" />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm space-y-2">
+                    <div className="flex items-center justify-between">
+                      <UserMinus className="h-4 w-4 text-amber-500" />
+                      <span className="text-lg font-black text-slate-900">{attendanceStats.onLeave}</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">On Leave</p>
+                    <Progress value={(attendanceStats.onLeave / attendanceStats.totalUsers) * 100} className="h-1 bg-amber-100" />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[#0a3622] border-none shadow-sm space-y-2">
+                    <div className="flex items-center justify-between">
+                      <AlertCircle className="h-4 w-4 text-emerald-400" />
+                      <span className="text-lg font-black text-white">{attendanceStats.notMarked}</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-emerald-400/70 uppercase tracking-tight">Not Marked</p>
+                    <Progress value={(attendanceStats.notMarked / attendanceStats.totalUsers) * 100} className="h-1 bg-emerald-900" />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {reminders.length > 0 && (
               <div className="space-y-4">

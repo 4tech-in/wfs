@@ -14,6 +14,7 @@ import {
 import { CalendarDayCell } from './CalendarDayCell';
 import { CalendarDay } from '@/types/calendar';
 import { Reminder } from '@/types/reminder';
+import { AttendanceDashboardCount } from '@/types/attendance';
 
 interface CalendarGridProps {
   currentDate: Date;
@@ -21,6 +22,7 @@ interface CalendarGridProps {
   onDateClick: (date: Date) => void;
   calendarData?: CalendarDay[];
   reminders?: Reminder[];
+  attendanceStats?: (AttendanceDashboardCount | undefined)[];
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -31,6 +33,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   onDateClick,
   calendarData = [],
   reminders = [],
+  attendanceStats = [],
 }) => {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
@@ -56,6 +59,10 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     });
   };
 
+  const getAttendanceForDate = (index: number) => {
+    return attendanceStats[index];
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="grid grid-cols-7 bg-slate-50/50 border-b border-sidebar-border/30 shrink-0">
@@ -68,7 +75,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       
       <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-hide">
         <div className="grid grid-cols-7 border-l border-sidebar-border/30 h-full">
-          {days.map((date) => (
+          {days.map((date, index) => (
             <CalendarDayCell 
               key={date.toString()}
               day={date.getDate()}
@@ -79,6 +86,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               isToday={isSameDay(date, new Date())}
               data={getDataForDate(date)}
               reminders={getRemindersForDate(date)}
+              attendanceStats={getAttendanceForDate(index)}
               onClick={onDateClick}
             />
           ))}

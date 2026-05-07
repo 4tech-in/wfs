@@ -7,7 +7,10 @@ import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { DetailsSidebar } from '@/components/calendar/DetailsSidebar';
 import { useCalendarMonth, useUpdateCalendarDay } from '@/hooks/queries/use-calendar-queries';
 import { useRemindersQuery } from '@/hooks/queries/use-reminders';
-import { addMonths, subMonths, format, parseISO, isValid } from 'date-fns';
+import { addMonths, subMonths, format, parseISO, isValid, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isBefore, endOfToday, isSameDay } from 'date-fns';
+import { useQueries } from '@tanstack/react-query';
+import { attendanceService } from '@/services/attendance-service';
+import { QUERY_KEYS } from '@/constants/query-keys';
 
 function CalendarPageContent() {
   const router = useRouter();
@@ -79,6 +82,28 @@ function CalendarPageContent() {
   // Mutation for updating day
   const updateMutation = useUpdateCalendarDay();
 
+  // Attendance stats for the grid interval
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart);
+  const endDate = endOfWeek(monthEnd);
+
+  const days = useMemo(() => eachDayOfInterval({
+    start: startDate,
+    end: endDate,
+  }), [startDate, endDate]);
+
+  const attendanceResults = useQueries({
+    queries: days.map(date => ({
+      queryKey: [...QUERY_KEYS.attendance.dashboardCount(), format(date, 'yyyy-MM-dd')],
+      queryFn: () => attendanceService.getDashboardCount(format(date, 'yyyy-MM-dd'), format(date, 'yyyy-MM-dd')),
+      enabled: isBefore(date, endOfToday()) || isSameDay(date, new Date()),
+      staleTime: 300000,
+    }))
+  });
+
+  const attendanceStats = useMemo(() => attendanceResults.map(r => r.data), [attendanceResults]);
+
   const handlePrevMonth = () => setCurrentDate(prev => subMonths(prev, 1));
   const handleNextMonth = () => setCurrentDate(prev => addMonths(prev, 1));
   const handleDateChange = (date: Date) => setCurrentDate(date);
@@ -118,6 +143,14 @@ function CalendarPageContent() {
       return targetDate?.startsWith(dateStr);
     }) || [];
   }, [selectedDate, remindersData]);
+
+  // Find attendance stats for currently selected date
+  const selectedAttendanceStats = useMemo(() => {
+    if (!selectedDate) return undefined;
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const index = days.findIndex(d => format(d, 'yyyy-MM-dd') === dateStr);
+    return index !== -1 ? attendanceStats[index] : undefined;
+  }, [selectedDate, days, attendanceStats]);
 
   // Use API data for the grid
   const mergedCalendarData = useMemo(() => {
@@ -162,6 +195,7 @@ function CalendarPageContent() {
               onDateClick={handleDayClick}
               calendarData={mergedCalendarData}
               reminders={remindersData?.data || []}
+              attendanceStats={attendanceStats}
             />
           </div>
 
@@ -174,6 +208,7 @@ function CalendarPageContent() {
                 onClose={() => setSidebarOpen(false)}
                 data={selectedDayData}
                 reminders={selectedReminders}
+                attendanceStats={selectedAttendanceStats}
                 onUpdate={handleUpdateDay}
                 isLoading={updateMutation.isPending}
               />

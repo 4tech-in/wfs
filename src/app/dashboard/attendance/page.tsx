@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { RefreshCw, Upload, Plus, CalendarIcon, ClipboardCheck } from "lucide-react"
+import { RefreshCw, Upload, Plus, CalendarIcon, ClipboardCheck, Search } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { AttendanceUploadDialog } from "@/components/dashboard/attendance-upload-dialog"
@@ -26,6 +26,7 @@ import {
 import { format } from "date-fns"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { 
     Users, 
     UserCheck, 
@@ -57,6 +58,17 @@ function AttendanceContent() {
     const [date, setDate] = React.useState<Date>(urlDate ? new Date(urlDate) : new Date())
     const [status, setStatus] = React.useState<string | undefined>(urlStatus || undefined)
     const [companyId, setCompanyId] = React.useState<string>(urlCompanyId || "all")
+    const [search, setSearch] = React.useState("")
+    const [debouncedSearch, setDebouncedSearch] = React.useState("")
+
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search)
+            setPagination(prev => ({ ...prev, pageIndex: 0 }))
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [search])
+
     const user = authStorage.getUser()
     const isHr = user?.role === "hr"
 
@@ -66,7 +78,8 @@ function AttendanceContent() {
         pagination.pageIndex + 1,
         pagination.pageSize,
         status,
-        companyId === "all" ? undefined : companyId
+        companyId === "all" ? undefined : companyId,
+        debouncedSearch
     )
 
     const handleStatusFilter = (newStatus: string | undefined) => {
@@ -86,6 +99,18 @@ function AttendanceContent() {
                     <h1 className="text-3xl font-bold tracking-tight italic font-heading text-emerald-600">Attendance Log</h1>
                 </div>
                 <div className="flex flex-wrap items-end gap-3 px-1">
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+                        <Label className="text-[10px] uppercase font-black text-slate-400 ml-1">Search Employee</Label>
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                            <Input
+                                placeholder="Name or ID..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="h-10 pl-9 pr-4 rounded-xl border-slate-200 bg-white shadow-sm focus-visible:ring-emerald-500/10 focus-visible:border-emerald-500 font-medium text-xs transition-all"
+                            />
+                        </div>
+                    </div>
                     <div className="flex flex-col gap-1.5">
                         <Label className="text-[10px] uppercase font-black text-slate-400 ml-1">Company</Label>
                         <CompanySelect 

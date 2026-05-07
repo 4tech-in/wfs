@@ -72,6 +72,7 @@ export function ExpandedStatCard({
     10, // Force limit 10 to override any cached values
     isEmployeeView ? undefined : categoryToStatus[category],
     selectedCompanyId === "all" ? undefined : selectedCompanyId,
+    apiParams.search,
     { 
       staleTime: 60000,
       enabled: !isEmployeeView

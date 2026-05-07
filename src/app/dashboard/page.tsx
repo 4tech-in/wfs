@@ -153,6 +153,7 @@ export default function DashboardPage() {
     apiParams.limit as number,
     undefined,
     activityCompanyId === "all" ? undefined : activityCompanyId,
+    undefined,
     { staleTime: 60000 }
   )
 
@@ -169,6 +170,7 @@ export default function DashboardPage() {
     1,
     undefined,
     attendanceGraphCompanyId === "all" ? undefined : attendanceGraphCompanyId,
+    undefined,
     { staleTime: 60000 }
   )
 

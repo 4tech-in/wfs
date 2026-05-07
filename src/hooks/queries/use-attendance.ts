@@ -35,11 +35,12 @@ export function useAttendanceWithSummaryQuery(
   limit: number = 10,
   status?: string,
   companyId?: string,
+  search?: string,
   options?: Partial<UseQueryOptions<AttendanceWithSummaryResponse>>
 ) {
   return useQuery<AttendanceWithSummaryResponse>({
-    queryKey: QUERY_KEYS.attendance.withSummary({ startDate, endDate, page, limit, status, companyId }),
-    queryFn: () => attendanceService.getWithSummary(startDate, endDate, page, limit, status, companyId),
+    queryKey: QUERY_KEYS.attendance.withSummary({ startDate, endDate, page, limit, status, companyId, search }),
+    queryFn: () => attendanceService.getWithSummary(startDate, endDate, page, limit, status, companyId, search),
     ...options
   });
 }

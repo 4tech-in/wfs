@@ -81,7 +81,7 @@ export function RoasterTable({ data, isLoading, pagination, onPaginationChange, 
         const company = row.original.companyId;
         if (!company) return <span className="text-slate-400">—</span>;
         
-        const name = typeof company === 'object' 
+        const name = (typeof company === 'object' && company !== null)
           ? (company as unknown as PopulatedField).name 
           : "N/A";
         
@@ -101,7 +101,7 @@ export function RoasterTable({ data, isLoading, pagination, onPaginationChange, 
           return <span className="text-slate-400 text-sm italic">Not Assigned</span>;
         }
 
-        const displayValue = typeof policy === 'object' ? (policy as unknown as PopulatedField).name : policy;
+        const displayValue = (typeof policy === 'object' && policy !== null) ? (policy as unknown as PopulatedField).name : policy;
         
         return (
           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 rounded-lg">
@@ -168,7 +168,7 @@ export function RoasterTable({ data, isLoading, pagination, onPaginationChange, 
               <RoasterDialog 
                 initialValues={{
                   employeeIds: [row.original._id],
-                  shiftId: typeof row.original.attendancePolicyId === 'object' 
+                  shiftId: (typeof row.original.attendancePolicyId === 'object' && row.original.attendancePolicyId !== null)
                     ? (row.original.attendancePolicyId as unknown as PopulatedField)._id 
                     : row.original.attendancePolicyId || "",
                   startDate: row.original.attendancePolicyStartDate 
@@ -177,7 +177,7 @@ export function RoasterTable({ data, isLoading, pagination, onPaginationChange, 
                   endDate: row.original.attendancePolicyEndDate 
                     ? new Date(row.original.attendancePolicyEndDate).toISOString().split("T")[0] 
                     : new Date().toISOString().split("T")[0],
-                  companyId: typeof row.original.companyId === 'object' 
+                  companyId: (typeof row.original.companyId === 'object' && row.original.companyId !== null)
                     ? (row.original.companyId as unknown as PopulatedField)._id 
                     : row.original.companyId || "",
                 }}

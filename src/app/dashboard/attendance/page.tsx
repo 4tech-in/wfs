@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { RefreshCw, Upload, Plus, CalendarIcon } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { AttendanceUploadDialog } from "@/components/dashboard/attendance-upload-dialog"
 import { MarkLeaveDialog } from "@/components/dashboard/mark-leave-dialog"
@@ -34,14 +35,27 @@ import {
 import { cn } from "@/lib/utils"
 
 export default function AttendancePage() {
+    return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <AttendanceContent />
+        </React.Suspense>
+    )
+}
+
+function AttendanceContent() {
+    const searchParams = useSearchParams()
+    const urlCompanyId = searchParams.get("companyId")
+    const urlStatus = searchParams.get("status")
+    const urlDate = searchParams.get("date")
+
     const [pagination, setPagination] = React.useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
     })
 
-    const [date, setDate] = React.useState<Date>(new Date())
-    const [status, setStatus] = React.useState<string | undefined>(undefined)
-    const [companyId, setCompanyId] = React.useState<string>("all")
+    const [date, setDate] = React.useState<Date>(urlDate ? new Date(urlDate) : new Date())
+    const [status, setStatus] = React.useState<string | undefined>(urlStatus || undefined)
+    const [companyId, setCompanyId] = React.useState<string>(urlCompanyId || "all")
     const user = authStorage.getUser()
     const isHr = user?.role === "hr"
 

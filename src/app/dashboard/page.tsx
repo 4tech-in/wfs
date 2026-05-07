@@ -807,6 +807,14 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+
+            <Button 
+              onClick={() => router.push(`/dashboard/attendance?companyId=${attendanceGraphCompanyId}&date=${today}`)}
+              className="w-full mt-6 bg-slate-50 border border-slate-100 text-slate-500 font-black text-[10px] h-10 shadow-none hover:bg-slate-100 hover:text-slate-700 rounded-xl group transition-all uppercase tracking-wider"
+            >
+              Detailed View
+              <ArrowRight className="ml-1.5 h-3 w-3" />
+            </Button>
           </Card>
 
           {/* Event and Alerts */}

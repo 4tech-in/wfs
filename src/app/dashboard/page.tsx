@@ -52,6 +52,7 @@ import { useRemindersQuery } from "@/hooks/queries/use-reminders"
 import { useCompanyDropdownQuery } from "@/hooks/queries/use-company"
 import { useState, useMemo } from "react"
 import { MultiSelect } from "@/components/ui/multi-select"
+import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 
 // Mock data removed in favor of real API data
 
@@ -64,14 +65,18 @@ export default function DashboardPage() {
   const user = authStorage.getUser()
   const isHr = user?.role === "hr"
 
-  // Weekly Graph Preset State
   const [selectedPreset, setSelectedPreset] = useState("this_week")
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfWeek(new Date(), { weekStartsOn: 1 }),
+    to: new Date()
+  })
 
   const presetLabels: Record<string, string> = {
     this_week: "This Week's Attendance",
     last_week: "Last Week's Attendance",
     this_month: "This Month's Attendance",
     last_month: "Last Month's Attendance",
+    custom: "Custom Range Attendance",
   }
   
   // New Stats and Company State
@@ -115,7 +120,15 @@ export default function DashboardPage() {
     }
   }
 
-  const graphRange = getRangeFromPreset(selectedPreset) as DateRange
+  const handlePresetChange = (preset: string) => {
+    setSelectedPreset(preset)
+    if (preset !== "custom") {
+      const range = getRangeFromPreset(preset)
+      setDateRange(range)
+    }
+  }
+
+  const graphRange = dateRange
 
   const {
     pagination,
@@ -155,9 +168,12 @@ export default function DashboardPage() {
   const dashboardStats = dashboardCount || attendanceData?.summary
 
   // Graph Data Fetching (Parallel requests for each day in range)
-  const daysInRange = graphRange?.from && graphRange?.to
-    ? eachDayOfInterval({ start: graphRange.from, end: graphRange.to })
-    : []
+  const daysInRange = useMemo(() => {
+    if (!graphRange?.from || !graphRange?.to) return []
+    const days = eachDayOfInterval({ start: graphRange.from, end: graphRange.to })
+    // Limit to 31 days for performance
+    return days.slice(0, 31)
+  }, [graphRange])
 
   const dailyStatsQueries = useQueries({
     queries: daysInRange.map(date => {
@@ -509,7 +525,14 @@ export default function DashboardPage() {
               </h3>
             </div>
             <div className="flex items-center gap-2">
-              <Select value={selectedPreset} onValueChange={setSelectedPreset}>
+              {selectedPreset === "custom" && (
+                <DatePickerWithRange 
+                  date={dateRange} 
+                  setDate={setDateRange}
+                  disabled={{ after: new Date() }}
+                />
+              )}
+              <Select value={selectedPreset} onValueChange={handlePresetChange}>
                 <SelectTrigger className="w-[180px] h-10 rounded-xl border-slate-200 bg-white shadow-sm font-semibold text-xs text-slate-700 focus:ring-emerald-500/10">
                   <SelectValue placeholder="Select Range" />
                 </SelectTrigger>
@@ -518,6 +541,7 @@ export default function DashboardPage() {
                   <SelectItem value="last_week" className="text-xs font-semibold">Last Week</SelectItem>
                   <SelectItem value="this_month" className="text-xs font-semibold">This Month</SelectItem>
                   <SelectItem value="last_month" className="text-xs font-semibold">Last Month</SelectItem>
+                  <SelectItem value="custom" className="text-xs font-semibold">Custom Range</SelectItem>
                 </SelectContent>
               </Select>
             </div>

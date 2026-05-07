@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Pencil } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge"
 import { RoasterDialog } from "@/components/dashboard/roaster-dialog"
 import { format } from "date-fns"
 import { PaginationState } from "@tanstack/react-table"
+import { useAssignAttendancePolicyMutation } from "@/hooks/queries/use-roster"
+import { toast } from "sonner"
 
 type PopulatedField = { name: string; _id: string }
 type UniqueIdObject = { name?: string; _id?: string }
@@ -32,6 +34,7 @@ interface RoasterTableProps {
 }
 
 export function RoasterTable({ data, isLoading, pagination, onPaginationChange, totalItems, pageCount }: RoasterTableProps) {
+  const assignMutation = useAssignAttendancePolicyMutation()
 
   const columns: ColumnDef<AttendancePolicyUser>[] = [
     {
@@ -191,6 +194,27 @@ export function RoasterTable({ data, isLoading, pagination, onPaginationChange, 
                   </DropdownMenuItem>
                 }
               />
+              <DropdownMenuItem 
+                className="rounded-lg flex items-center gap-2 cursor-pointer text-rose-600 focus:text-rose-600 focus:bg-rose-50"
+                onClick={() => {
+                  if (confirm("Are you sure you want to unassign this roster?")) {
+                    assignMutation.mutate({
+                      userIds: [row.original._id],
+                      attendancePolicyId: null,
+                      startDate: null,
+                      endDate: null
+                    }, {
+                      onSuccess: () => {
+                        toast.success("Roster unassigned successfully")
+                      }
+                    })
+                  }
+                }}
+                disabled={assignMutation.isPending || !row.original.attendancePolicyId}
+              >
+                <Trash className="h-4 w-4" />
+                Unassign Roster
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )

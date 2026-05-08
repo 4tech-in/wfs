@@ -64,7 +64,6 @@ function EmployeeMasterContent() {
 
   const { data, isLoading, refetch, isFetching } = useEmployeesQuery({ 
     ...apiParams, 
-    limit: 10,
     companyId,
     departmentId,
     designationId,
@@ -167,7 +166,7 @@ function EmployeeMasterContent() {
         isLoading={isLoading}
         totalItems={data?.pagination?.total || 0}
         pageCount={data?.pagination?.totalPages || 0}
-        pagination={{ ...pagination, pageSize: 10 }}
+        pagination={pagination}
         onPaginationChange={onPaginationChange}
         onSortingChange={onSortingChange}
         search={search}

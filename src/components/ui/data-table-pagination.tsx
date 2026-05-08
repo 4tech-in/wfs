@@ -51,7 +51,7 @@ export function DataTablePagination<TData>({
       <div className="flex items-center gap-2 order-2 sm:order-1">
         <span className="text-[14px] text-slate-500">Show</span>
         <Select
-          value={totalItems !== undefined && pageSize >= totalItems ? "all" : `${pageSize}`}
+          value={`${pageSize}`}
           onValueChange={(value) => {
             if (value === "all") {
               table.setPageSize(totalItems || 1000)

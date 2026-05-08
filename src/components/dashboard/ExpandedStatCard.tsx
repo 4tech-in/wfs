@@ -69,7 +69,7 @@ export function ExpandedStatCard({
     today,
     today,
     apiParams.page, 
-    10, // Force limit 10 to override any cached values
+    pagination.pageSize, 
     isEmployeeView ? undefined : categoryToStatus[category],
     selectedCompanyId === "all" ? undefined : selectedCompanyId,
     apiParams.search,
@@ -83,8 +83,8 @@ export function ExpandedStatCard({
   // Enabled only when in the full employee master view
   const { data: employeeData, isLoading: isEmployeeLoading } = useEmployeesQuery(
     isEmployeeView 
-      ? { ...apiParams, limit: 10, companyId: selectedCompanyId === "all" ? undefined : selectedCompanyId } 
-      : { limit: 10 },
+      ? { ...apiParams, limit: pagination.pageSize, companyId: selectedCompanyId === "all" ? undefined : selectedCompanyId } 
+      : { limit: pagination.pageSize },
     { 
       staleTime: 60000,
       enabled: isEmployeeView

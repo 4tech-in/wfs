@@ -181,3 +181,13 @@ export function useDeletedEmployeesQuery() {
     queryFn: () => employeeService.getDeletedUsers(),
   });
 }
+
+/**
+ * Hook to fetch employee stats with gender distribution
+ */
+export function useStatsWithGenderQuery(params: { companyIds?: string; departmentIds?: string }) {
+  return useQuery<EmployeeStatsResponse>({
+    queryKey: [...QUERY_KEYS.users.all, 'stats-with-gender', params],
+    queryFn: () => employeeService.getStatsWithGender(params),
+  });
+}

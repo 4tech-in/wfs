@@ -167,9 +167,6 @@ export const employeeService = {
     }
   },
 
-  /**
-   * Delete multiple employees
-   */
   deleteMultiple: async (data: { userIds: string[]; companyExitDate: string }): Promise<void> => {
     try {
       await apiClient.post<{ userIds: string[]; companyExitDate: string }, void>('/user/delete-multiple-users', data);
@@ -177,6 +174,18 @@ export const employeeService = {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete employees';
       toast.error(errorMessage);
+      throw error;
+    }
+  },
+
+  /**
+   * Get employee statistics with gender distribution, filtered by companies and departments
+   */
+  getStatsWithGender: async (params: { companyIds?: string; departmentIds?: string }): Promise<EmployeeStatsResponse> => {
+    try {
+      return await apiClient.get<void, EmployeeStatsResponse>('/user/stats-with-gender', { params });
+    } catch (error: unknown) {
+      toast.error('Failed to fetch gender statistics');
       throw error;
     }
   },

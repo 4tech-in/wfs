@@ -17,6 +17,7 @@ interface MultiSelectProps {
   onToggle: (value: string) => void
   placeholder?: string
   className?: string
+  unitLabel?: string
 }
 
 export function MultiSelect({
@@ -25,7 +26,19 @@ export function MultiSelect({
   onToggle,
   placeholder = "Select options...",
   className,
+  unitLabel = "Selected",
 }: MultiSelectProps) {
+  const selectedLabel = React.useMemo(() => {
+    if (selectedValues.length === 0) return placeholder
+    if (selectedValues.includes("overall")) {
+      return options.find(o => o.value === "overall")?.label || "Overall"
+    }
+    if (selectedValues.length === 1) {
+      return options.find((o) => o.value === selectedValues[0])?.label
+    }
+    return `${selectedValues.length} ${unitLabel}`
+  }, [selectedValues, options, placeholder, unitLabel])
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -38,13 +51,7 @@ export function MultiSelect({
           )}
         >
           <span className="truncate max-w-[120px]">
-            {selectedValues.length === 0
-              ? placeholder
-              : selectedValues.includes("overall")
-              ? "All Companies"
-              : selectedValues.length === 1
-              ? options.find((o) => o.value === selectedValues[0])?.label
-              : `${selectedValues.length} Companies Selected`}
+            {selectedLabel}
           </span>
           <ChevronDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
         </Button>

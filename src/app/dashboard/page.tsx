@@ -48,9 +48,10 @@ import { useAttendanceWithSummaryQuery, useAttendanceDashboardCountQuery } from 
 import { AttendanceTable } from "@/app/dashboard/attendance/attendance-table"
 import { EditEmployeeDialog, RegisterEmployeeDialog } from "@/components/employee/employee-dialogs"
 import { DeleteEmployeeDialog } from "@/components/employee/delete-employee-dialog"
-import { useEmployeeStatsQuery } from "@/hooks/queries/use-employees-query"
+import { useEmployeeStatsQuery, useStatsWithGenderQuery } from "@/hooks/queries/use-employees-query"
 import { useRemindersQuery } from "@/hooks/queries/use-reminders"
 import { useCompanyDropdownQuery } from "@/hooks/queries/use-company"
+import { useDepartmentsQuery } from "@/hooks/queries/use-org"
 import { useState, useMemo } from "react"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
@@ -85,9 +86,19 @@ export default function DashboardPage() {
   
   // New Stats and Company State
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>(["overall"])
+  const [selectedDeptIds, setSelectedDeptIds] = useState<string[]>(["overall"])
   const { data: statsData } = useEmployeeStatsQuery()
   const { data: remindersData } = useRemindersQuery({ limit: 4 })
   const { data: companiesData } = useCompanyDropdownQuery()
+  const { data: deptsData } = useDepartmentsQuery()
+  
+  const genderStatsParams = useMemo(() => ({
+    companyIds: selectedCompanyIds.includes("overall") ? undefined : selectedCompanyIds.join(","),
+    departmentIds: selectedDeptIds.includes("overall") ? undefined : selectedDeptIds.join(",")
+  }), [selectedCompanyIds, selectedDeptIds])
+
+  const { data: genderStatsData, isFetching: isGenderStatsFetching } = useStatsWithGenderQuery(genderStatsParams)
+
   const [activityCompanyId, setActivityCompanyId] = useState<string>("all")
   const [attendanceGraphCompanyIds, setAttendanceGraphCompanyIds] = useState<string[]>(["overall"])
 
@@ -227,22 +238,52 @@ export default function DashboardPage() {
   }
 
   const currentStats = useMemo(() => {
-    if (!statsData?.data) return null
-    if (selectedCompanyIds.includes("overall")) return statsData.data.overall
-
-    const selectedCompanies = statsData.data.companyWise.filter(c => 
-      selectedCompanyIds.includes(c.companyId)
-    )
+    const hasFilters = !selectedCompanyIds.includes("overall") || !selectedDeptIds.includes("overall")
     
-    if (selectedCompanies.length === 0) return { totalUsers: 0, male: 0, female: 0, other: 0 }
+    // Default empty stats to prevent UI breakage
+    const emptyStats = { totalUsers: 0, male: 0, female: 0, other: 0 }
 
-    return selectedCompanies.reduce((acc, curr) => ({
-      totalUsers: acc.totalUsers + curr.totalUsers,
-      male: acc.male + curr.male,
-      female: acc.female + curr.female,
-      other: acc.other + curr.other,
-    }), { totalUsers: 0, male: 0, female: 0, other: 0 })
-  }, [selectedCompanyIds, statsData])
+    if (hasFilters) {
+      // If we have filters, strictly use the gender-specific stats
+      if (!genderStatsData) return null
+      
+      // Handle both { data: { overall: ... } } and direct { overall: ... } or { totalUsers: ... } structures
+      const rawData = genderStatsData as unknown as Record<string, unknown>
+      const stats = (genderStatsData.data?.overall || 
+                    rawData.overall || 
+                    rawData.data || 
+                    rawData) as Record<string, number | undefined>
+      
+      if (stats && typeof stats === 'object') {
+        return {
+          totalUsers: (stats.totalUsers as number) ?? 0,
+          male: (stats.male as number) ?? 0,
+          female: (stats.female as number) ?? 0,
+          other: (stats.other as number) ?? 0
+        }
+      }
+      return emptyStats
+    }
+
+    // Default to overall stats from the main stats query
+    const stats = statsData?.data?.overall
+    if (stats) return stats
+
+    return statsData?.data ? emptyStats : null
+  }, [selectedCompanyIds, selectedDeptIds, statsData, genderStatsData])
+
+  const toggleDept = (id: string) => {
+    setSelectedDeptIds(prev => {
+      if (id === "overall") return ["overall"]
+      const newIds = prev.filter(i => i !== "overall")
+      if (newIds.includes(id)) {
+        const filtered = newIds.filter(i => i !== id)
+        return filtered.length === 0 ? ["overall"] : filtered
+      } else {
+        return [...newIds, id]
+      }
+    })
+  }
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds(prev => {
@@ -652,29 +693,51 @@ export default function DashboardPage() {
 
         {/* Gender Distribution */}
         <Card className="border-none ring-1 ring-gray-100 shadow-none rounded-[28px] p-8 flex flex-col">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col gap-6 mb-8">
             <div className="space-y-1">
               <h3 className="text-xl font-bold text-slate-900 font-heading">Gender Distribution</h3>
+              <p className="text-xs font-semibold text-slate-400">Gender-wise breakdown of employees.</p>
             </div>
-            <MultiSelect
-              options={[
-                { label: "All Companies", value: "overall" },
-                ...(statsData?.data.companyWise
-                  .filter(company => company.companyName !== "No Company")
-                  .map(company => ({
-                    label: company.companyName,
-                    value: company.companyId
+            <div className="grid grid-cols-2 gap-3">
+              <MultiSelect
+                options={[
+                  { label: "All Companies", value: "overall" },
+                  ...(statsData?.data.companyWise
+                    .filter(company => company.companyName !== "No Company")
+                    .map(company => ({
+                      label: company.companyName,
+                      value: company.companyId
+                    })) || [])
+                ]}
+                selectedValues={selectedCompanyIds}
+                onToggle={toggleCompany}
+                placeholder="Select Company"
+                className="w-full h-10"
+                unitLabel="Companies"
+              />
+              <MultiSelect
+                options={[
+                  { label: "All Departments", value: "overall" },
+                  ...(deptsData?.data?.map((dept) => ({
+                    label: dept.name,
+                    value: dept._id
                   })) || [])
-              ]}
-              selectedValues={selectedCompanyIds}
-              onToggle={toggleCompany}
-              placeholder="Select Company"
-              className="w-[180px]"
-            />
+                ]}
+                selectedValues={selectedDeptIds}
+                onToggle={toggleDept}
+                placeholder="Select Department"
+                className="w-full h-10"
+                unitLabel="Departments"
+              />
+            </div>
           </div>
-          <p className="text-xs font-semibold text-slate-400 mb-8">Gender-wise breakdown of employees.</p>
 
           <div className="flex-1 relative min-h-[220px]">
+            {isGenderStatsFetching && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/40 z-10 rounded-xl backdrop-blur-[1px]">
+                <div className="h-8 w-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+              </div>
+            )}
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -807,6 +870,7 @@ export default function DashboardPage() {
                 onToggle={toggleAttendanceGraphCompany}
                 placeholder="Select Company"
                 className="w-[180px]"
+                unitLabel="Companies"
               />
             </div>
 

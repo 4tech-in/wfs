@@ -30,7 +30,6 @@ function EmployeeMasterContent() {
 
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null)
   const [deletingUserIds, setDeletingUserIds] = React.useState<string[]>([])
-  const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({})
   const [companyId, setCompanyId] = React.useState<string | undefined>(initialCompanyId)
   const [gender, setGender] = React.useState<string | undefined>(initialGender)
   const [departmentId, setDepartmentId] = React.useState<string | undefined>(undefined)
@@ -71,13 +70,7 @@ function EmployeeMasterContent() {
     gender
   } as EmployeeQueryParams)
 
-  const selectedUserIds = React.useMemo(() => {
-    if (!data?.data) return []
-    return Object.keys(rowSelection)
-      .filter((key) => rowSelection[key])
-      .map((index) => data.data[parseInt(index)]?.id || data.data[parseInt(index)]?._id)
-      .filter(Boolean) as string[]
-  }, [rowSelection, data])
+
 
   const { 
     data: companiesData, 
@@ -160,16 +153,7 @@ function EmployeeMasterContent() {
             title="Bulk Upload Employees"
             description="Upload your employee data using an Excel or CSV file."
           />
-          {selectedUserIds.length > 0 && (
-            <Button
-              variant="destructive"
-              onClick={() => setDeletingUserIds(selectedUserIds)}
-              className="rounded-xl flex items-center gap-2 h-10 px-4 shadow-sm animate-in fade-in zoom-in duration-200"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete {selectedUserIds.length} Selected
-            </Button>
-          )}
+
           <Link href="/dashboard/employee/deleted">
             <Button variant="outline" className="border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-all rounded-xl flex items-center gap-2">
               <Trash2 className="h-4 w-4" />
@@ -192,8 +176,6 @@ function EmployeeMasterContent() {
         onSearchChange={onSearchChange}
         onEdit={setEditingEmployee}
         onDelete={(id) => setDeletingUserIds([id])}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
         extraActions={
           <div className="flex items-center gap-2">
             {(companyId || departmentId || designationId || gender) && (

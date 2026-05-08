@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
 import { Edit, Trash2, Eye } from "lucide-react"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Employee } from "@/types/employee"
 import { format } from "date-fns"
 
@@ -27,8 +26,6 @@ interface EmployeeTableProps {
     hideSearch?: boolean
     isDashboardView?: boolean
     extraActions?: React.ReactNode
-    rowSelection?: Record<string, boolean>
-    onRowSelectionChange?: (rowSelection: Record<string, boolean>) => void
 }
 
 export const getEmployeeColumns = (
@@ -41,31 +38,6 @@ export const getEmployeeColumns = (
     type PopulatedField = { name: string; _id: string };
 
     const cols: ColumnDef<Employee>[] = [
-        {
-            id: "select",
-            header: ({ table }) => (
-                <div className="flex justify-center">
-                    <Checkbox
-                        checked={table.getIsAllPageRowsSelected()}
-                        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                        aria-label="Select all"
-                        className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-[#3CC3A3]"
-                    />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="flex justify-center">
-                    <Checkbox
-                        checked={row.getIsSelected()}
-                        onCheckedChange={(value) => row.toggleSelected(!!value)}
-                        aria-label="Select row"
-                        className="border-slate-300 data-[state=checked]:bg-[#3CC3A3] data-[state=checked]:border-[#3CC3A3]"
-                    />
-                </div>
-            ),
-            enableSorting: false,
-            enableHiding: false,
-        },
         {
             accessorKey: "employeeId",
             header: "ID",
@@ -374,8 +346,6 @@ export function EmployeeTable({
     hideSearch,
     isDashboardView,
     extraActions,
-    rowSelection,
-    onRowSelectionChange,
 }: EmployeeTableProps) {
     const router = useRouter()
 
@@ -413,8 +383,6 @@ export function EmployeeTable({
             showSrNo={true}
             hideSearch={hideSearch}
             extraActions={extraActions}
-            rowSelection={rowSelection}
-            onRowSelectionChange={onRowSelectionChange}
         />
     )
 }

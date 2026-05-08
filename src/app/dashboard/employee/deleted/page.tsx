@@ -84,7 +84,7 @@ export default function DeletedEmployeesPage() {
     },
     {
       accessorKey: "deletedAt",
-      header: "Deleted At",
+      header: "Exited On",
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="text-sm font-medium text-rose-600">

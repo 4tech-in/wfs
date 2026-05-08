@@ -166,6 +166,20 @@ export const employeeService = {
       throw error;
     }
   },
+
+  /**
+   * Delete multiple employees
+   */
+  deleteMultiple: async (data: { userIds: string[]; companyExitDate: string }): Promise<void> => {
+    try {
+      await apiClient.post<{ userIds: string[]; companyExitDate: string }, void>('/user/delete-multiple-users', data);
+      toast.success('Employees deleted successfully');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete employees';
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
 };
 
 export default employeeService;

@@ -131,9 +131,6 @@ export function useUpdateEmployeeMutation() {
   });
 }
 
-/**
- * Hook to delete an employee
- */
 export function useDeleteEmployeeMutation() {
   const queryClient = useQueryClient();
 
@@ -141,6 +138,21 @@ export function useDeleteEmployeeMutation() {
     mutationFn: (id: string) => employeeService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.users.all });
+    },
+  });
+}
+
+/**
+ * Hook to delete multiple employees
+ */
+export function useDeleteMultipleEmployeesMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { userIds: string[]; companyExitDate: string }) => employeeService.deleteMultiple(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.users.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.attendance.all });
     },
   });
 }

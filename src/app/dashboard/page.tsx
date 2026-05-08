@@ -65,7 +65,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [selectedStat, setSelectedStat] = useState<EmployeeStatus | "all" | null>(null)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
-  const [deletingEmployeeId, setDeletingEmployeeId] = useState<string | null>(null)
+  const [deletingUserIds, setDeletingUserIds] = useState<string[]>([])
   const user = authStorage.getUser()
   const isHr = user?.role === "hr"
 
@@ -771,6 +771,7 @@ export default function DashboardPage() {
             pagination={pagination}
             onPaginationChange={onPaginationChange}
             selectedDate={today}
+            onDelete={(id) => setDeletingUserIds([id])}
           />
 
           <EditEmployeeDialog
@@ -780,9 +781,9 @@ export default function DashboardPage() {
           />
 
           <DeleteEmployeeDialog
-            employeeId={deletingEmployeeId}
-            open={!!deletingEmployeeId}
-            onOpenChange={(open) => !open && setDeletingEmployeeId(null)}
+            userIds={deletingUserIds}
+            open={deletingUserIds.length > 0}
+            onOpenChange={(open) => !open && setDeletingUserIds([])}
           />
         </Card>
 

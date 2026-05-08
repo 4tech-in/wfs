@@ -13,7 +13,8 @@ import {
   Building2,
   Check,
   X,
-  MoreHorizontal
+  MoreHorizontal,
+  Trash2
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { DataTable } from "@/components/ui/data-table"
@@ -38,6 +39,7 @@ interface AttendanceTableProps {
   hideSearch?: boolean
   selectedDate?: string
   onMarkManual?: (initialData: ManualAttendanceInitialData) => void
+  onDelete?: (id: string) => void
 }
 
 export function AttendanceTable({ 
@@ -48,7 +50,8 @@ export function AttendanceTable({
   totalItems,
   hideSearch = false,
   selectedDate = format(new Date(), "yyyy-MM-dd"),
-  onMarkManual
+  onMarkManual,
+  onDelete
 }: AttendanceTableProps) {
   const markAttendanceMutation = useMarkAttendanceMutation()
 
@@ -309,6 +312,15 @@ export function AttendanceTable({
                   <X className="h-4 w-4" />
                   Mark Absent
                 </DropdownMenuItem>
+                {onDelete && user?._id && (
+                  <DropdownMenuItem 
+                    className="gap-2 font-bold text-destructive focus:text-destructive focus:bg-destructive/5 rounded-lg cursor-pointer"
+                    onClick={() => onDelete(user._id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Employee
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

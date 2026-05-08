@@ -52,6 +52,8 @@ interface DataTableProps<TData, TValue> {
   height?: string
   showSrNo?: boolean
   hideSearch?: boolean
+  rowSelection?: Record<string, boolean>
+  onRowSelectionChange?: (rowSelection: Record<string, boolean>) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -72,8 +74,23 @@ export function DataTable<TData, TValue>({
   height,
   showSrNo = true,
   hideSearch = false,
+  rowSelection: externalRowSelection,
+  onRowSelectionChange: externalOnRowSelectionChange,
 }: DataTableProps<TData, TValue>) {
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [internalRowSelection, setInternalRowSelection] = React.useState({})
+  
+  const rowSelection = externalRowSelection ?? internalRowSelection
+  const onRowSelectionChange = React.useCallback((updaterOrValue: Updater<Record<string, boolean>>) => {
+    const nextValue = typeof updaterOrValue === 'function' 
+      ? updaterOrValue(rowSelection as Record<string, boolean>) 
+      : updaterOrValue
+    
+    if (externalOnRowSelectionChange) {
+      externalOnRowSelectionChange(nextValue)
+    } else {
+      setInternalRowSelection(nextValue)
+    }
+  }, [externalOnRowSelectionChange, rowSelection])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -160,7 +177,7 @@ export function DataTable<TData, TValue>({
     pageCount: effectivePageCount,
     enableSorting,
     enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: onRowSelectionChange,
     onSortingChange: internalOnSortingChange,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,

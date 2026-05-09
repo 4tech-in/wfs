@@ -283,6 +283,19 @@ export function AttendanceTable({
           const punchIn = attendance?.punchIn;
           const punchOut = attendance?.punchOut;
 
+          // If punchIn is available but punchOut is not, ask for punch out details via manual dialog
+          if (punchIn && !punchOut && onMarkManual) {
+            onMarkManual({
+              employeeId: user._id,
+              companyId: user.company?._id,
+              date: new Date(recordDate),
+              status: status,
+              punchIn: punchIn,
+              punchOut: punchOut
+            });
+            return;
+          }
+
           if (punchIn || punchOut) {
             markAttendanceMutation.mutate({
               userIds: [user._id],

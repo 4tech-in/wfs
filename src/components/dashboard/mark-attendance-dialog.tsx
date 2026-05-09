@@ -78,6 +78,29 @@ interface MarkManualAttendanceDialogProps {
   initialData?: ManualAttendanceInitialData;
 }
 
+const getTimeParts = (isoString: string | undefined | null) => {
+  if (!isoString) return null;
+  try {
+    let timePart = "";
+    if (isoString.includes('T')) {
+      timePart = isoString.split('T')[1].substring(0, 5);
+    } else if (isoString.includes(':')) {
+      timePart = isoString.substring(0, 5);
+    }
+    
+    if (!timePart) return null;
+    
+    const [h, m] = timePart.split(':').map(Number);
+    const period = h >= 12 ? "PM" : "AM";
+    const displayHour = (h % 12 || 12).toString().padStart(2, "0");
+    const displayMinute = m.toString().padStart(2, "0");
+    
+    return { hour: displayHour, minute: displayMinute, period };
+  } catch {
+    return null;
+  }
+};
+
 export function MarkManualAttendanceDialog({ 
   trigger, 
   open: controlledOpen, 
@@ -106,6 +129,10 @@ export function MarkManualAttendanceDialog({
     [companyData]
   )
 
+  const inParts = getTimeParts(initialData?.punchIn);
+  const outParts = getTimeParts(initialData?.punchOut);
+
+
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceSchema),
     defaultValues: {
@@ -113,12 +140,12 @@ export function MarkManualAttendanceDialog({
       employeeId: initialData?.employeeId || "",
       date: initialData?.date || new Date(),
       status: initialData?.status || "Present",
-      punchInHour: initialData?.punchIn ? format(new Date(initialData.punchIn), "hh") : "09",
-      punchInMinute: initialData?.punchIn ? format(new Date(initialData.punchIn), "mm") : "00",
-      punchInPeriod: initialData?.punchIn ? format(new Date(initialData.punchIn), "aa") : "AM",
-      punchOutHour: initialData?.punchOut ? format(new Date(initialData.punchOut), "hh") : "06",
-      punchOutMinute: initialData?.punchOut ? format(new Date(initialData.punchOut), "mm") : "00",
-      punchOutPeriod: initialData?.punchOut ? format(new Date(initialData.punchOut), "aa") : "PM",
+      punchInHour: inParts?.hour || "09",
+      punchInMinute: inParts?.minute || "00",
+      punchInPeriod: inParts?.period || "AM",
+      punchOutHour: outParts?.hour || "06",
+      punchOutMinute: outParts?.minute || "00",
+      punchOutPeriod: outParts?.period || "PM",
     },
   })
 
@@ -190,17 +217,20 @@ export function MarkManualAttendanceDialog({
   // Pre-fill form when initialData changes
   React.useEffect(() => {
     if (initialData && open) {
+      const inParts = getTimeParts(initialData.punchIn);
+      const outParts = getTimeParts(initialData.punchOut);
+      
       form.reset({
         companyId: initialData.companyId || "",
         employeeId: initialData.employeeId || "",
         date: initialData.date || new Date(),
         status: initialData.status || "Present",
-        punchInHour: initialData.punchIn ? format(new Date(initialData.punchIn), "hh") : "09",
-        punchInMinute: initialData.punchIn ? format(new Date(initialData.punchIn), "mm") : "00",
-        punchInPeriod: initialData.punchIn ? format(new Date(initialData.punchIn), "aa") : "AM",
-        punchOutHour: initialData.punchOut ? format(new Date(initialData.punchOut), "hh") : "06",
-        punchOutMinute: initialData.punchOut ? format(new Date(initialData.punchOut), "mm") : "00",
-        punchOutPeriod: initialData.punchOut ? format(new Date(initialData.punchOut), "aa") : "PM",
+        punchInHour: inParts?.hour || "09",
+        punchInMinute: inParts?.minute || "00",
+        punchInPeriod: inParts?.period || "AM",
+        punchOutHour: outParts?.hour || "06",
+        punchOutMinute: outParts?.minute || "00",
+        punchOutPeriod: outParts?.period || "PM",
       })
     }
   }, [initialData, open, form])

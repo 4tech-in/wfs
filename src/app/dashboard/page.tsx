@@ -238,39 +238,18 @@ export default function DashboardPage() {
   }
 
   const currentStats = useMemo(() => {
-    const hasFilters = !selectedCompanyIds.includes("overall") || !selectedDeptIds.includes("overall")
+    // Priority 1: Use the specific gender stats query (filtered or unfiltered)
+    if (genderStatsData?.data?.overall) {
+      return genderStatsData.data.overall;
+    }
     
-    // Default empty stats to prevent UI breakage
-    const emptyStats = { totalUsers: 0, male: 0, female: 0, other: 0 }
-
-    if (hasFilters) {
-      // If we have filters, strictly use the gender-specific stats
-      if (!genderStatsData) return null
-      
-      // Handle both { data: { overall: ... } } and direct { overall: ... } or { totalUsers: ... } structures
-      const rawData = genderStatsData as unknown as Record<string, unknown>
-      const stats = (genderStatsData.data?.overall || 
-                    rawData.overall || 
-                    rawData.data || 
-                    rawData) as Record<string, number | undefined>
-      
-      if (stats && typeof stats === 'object') {
-        return {
-          totalUsers: (stats.totalUsers as number) ?? 0,
-          male: (stats.male as number) ?? 0,
-          female: (stats.female as number) ?? 0,
-          other: (stats.other as number) ?? 0
-        }
-      }
-      return emptyStats
+    // Priority 2: Fallback to general dashboard stats during initial load
+    if (statsData?.data?.overall) {
+      return statsData.data.overall;
     }
 
-    // Default to overall stats from the main stats query
-    const stats = statsData?.data?.overall
-    if (stats) return stats
-
-    return statsData?.data ? emptyStats : null
-  }, [selectedCompanyIds, selectedDeptIds, statsData, genderStatsData])
+    return { totalUsers: 0, male: 0, female: 0, other: 0 };
+  }, [statsData, genderStatsData])
 
   const toggleDept = (id: string) => {
     setSelectedDeptIds(prev => {
@@ -719,7 +698,10 @@ export default function DashboardPage() {
               <MultiSelect
                 options={[
                   { label: "All Departments", value: "overall" },
-                  ...(deptsData?.data?.map((dept) => ({
+                  ...(genderStatsData?.data?.departmentWise?.map((dept) => ({
+                    label: dept.departmentName,
+                    value: dept.departmentId
+                  })) || deptsData?.data?.map((dept) => ({
                     label: dept.name,
                     value: dept._id
                   })) || [])

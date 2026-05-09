@@ -148,6 +148,14 @@ export interface EmployeeStats {
     companyId: string;
     companyName: string;
   }[];
+  departmentWise?: {
+    totalUsers: number;
+    male: number;
+    female: number;
+    other: number;
+    departmentId: string;
+    departmentName: string;
+  }[];
 }
 
 export interface EmployeeStatsResponse {

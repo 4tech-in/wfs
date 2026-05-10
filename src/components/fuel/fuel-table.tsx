@@ -7,6 +7,7 @@ import { PaginationState } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { FuelRecord } from "@/types/fuel"
 
 interface FuelTableProps {
   data: FuelRecord[]

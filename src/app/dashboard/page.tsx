@@ -41,14 +41,14 @@ import {
   Cell
 } from "recharts"
 import { motion, AnimatePresence } from "framer-motion"
-import { Employee, EmployeeStatus } from "@/types/employee"
+import { Employee, EmployeeStatus, EmployeeStats } from "@/types/employee"
 import { ExpandedStatCard } from "@/components/dashboard/ExpandedStatCard"
 import { useDataTable } from "@/hooks/use-data-table"
 import { useAttendanceWithSummaryQuery, useAttendanceDashboardCountQuery } from "@/hooks/queries/use-attendance"
 import { AttendanceTable } from "@/app/dashboard/attendance/attendance-table"
 import { EditEmployeeDialog, RegisterEmployeeDialog } from "@/components/employee/employee-dialogs"
 import { DeleteEmployeeDialog } from "@/components/employee/delete-employee-dialog"
-import { useEmployeeStatsQuery, useStatsWithGenderQuery } from "@/hooks/queries/use-employees-query"
+import { useStatsWithGenderQuery } from "@/hooks/queries/use-employees-query"
 import { useRemindersQuery } from "@/hooks/queries/use-reminders"
 import { useCompanyDropdownQuery } from "@/hooks/queries/use-company"
 import { useDepartmentsQuery } from "@/hooks/queries/use-org"
@@ -87,7 +87,6 @@ export default function DashboardPage() {
   // New Stats and Company State
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>(["overall"])
   const [selectedDeptIds, setSelectedDeptIds] = useState<string[]>(["overall"])
-  const { data: statsData } = useEmployeeStatsQuery()
   const { data: remindersData } = useRemindersQuery({ limit: 4 })
   const { data: companiesData } = useCompanyDropdownQuery()
   const { data: deptsData } = useDepartmentsQuery()
@@ -238,18 +237,21 @@ export default function DashboardPage() {
   }
 
   const currentStats = useMemo(() => {
-    // Priority 1: Use the specific gender stats query (filtered or unfiltered)
-    if (genderStatsData?.data?.overall) {
-      return genderStatsData.data.overall;
-    }
-    
-    // Priority 2: Fallback to general dashboard stats during initial load
-    if (statsData?.data?.overall) {
-      return statsData.data.overall;
+    const data = genderStatsData?.data;
+    if (!data) return { totalUsers: 0, male: 0, female: 0, other: 0 };
+
+    // Check if the response is nested (has 'overall' property) or flat
+    if ('overall' in data && data.overall) {
+      return data.overall;
     }
 
+    // Fallback to flat structure if totalUsers is present directly in data
+    if ('totalUsers' in data) {
+      return data as unknown as EmployeeStats['overall'];
+    }
+    
     return { totalUsers: 0, male: 0, female: 0, other: 0 };
-  }, [statsData, genderStatsData])
+  }, [genderStatsData])
 
   const toggleDept = (id: string) => {
     setSelectedDeptIds(prev => {
@@ -286,6 +288,11 @@ export default function DashboardPage() {
     const companyIds = selectedCompanyIds.filter(id => id !== 'overall')
     if (companyIds.length > 0) {
       params.set('companyId', companyIds[0])
+    }
+
+    const deptIds = selectedDeptIds.filter(id => id !== 'overall')
+    if (deptIds.length > 0) {
+      params.set('departmentId', deptIds[0])
     }
     
     router.push(`/dashboard/employee?${params.toString()}`)
@@ -682,12 +689,13 @@ export default function DashboardPage() {
               <MultiSelect
                 options={[
                   { label: "All Companies", value: "overall" },
-                  ...(statsData?.data.companyWise
-                    .filter(company => company.companyName !== "No Company")
-                    .map(company => ({
-                      label: company.companyName,
-                      value: company.companyId
-                    })) || [])
+                  ...(genderStatsData?.data?.companyWise?.map((company) => ({
+                    label: company.companyName,
+                    value: company.companyId
+                  })) || companiesData?.data?.map((company: { _id: string; name: string }) => ({
+                    label: company.name,
+                    value: company._id
+                  })) || [])
                 ]}
                 selectedValues={selectedCompanyIds}
                 onToggle={toggleCompany}

@@ -22,7 +22,6 @@ import {
   Banknote,
   CalendarX,
   Search,
-  PaperclipIcon,
   Bell,
   Fuel,
 } from "lucide-react"

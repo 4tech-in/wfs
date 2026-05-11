@@ -211,10 +211,20 @@ export function AttendanceTable({
       cell: ({ row }) => {
         const item = row.original;
         const attendance = 'attendance' in item ? item.attendance : item;
+        const time = formatTime(attendance?.punchIn);
+        const date = attendance?.punchIn?.includes('T') ? formatDateLabel(attendance.punchIn) : null;
+        
         return (
-          <div className="flex items-center gap-2 text-slate-600 font-bold">
-            <Clock className="h-3.5 w-3.5 text-emerald-500" />
-            <span>{formatTime(attendance?.punchIn)}</span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 text-slate-600 font-bold">
+              <Clock className="h-3.5 w-3.5 text-emerald-500" />
+              <span>{time}</span>
+            </div>
+            {date && (
+              <span className="text-[9px] text-slate-400 font-medium ml-5.5">
+                {date}
+              </span>
+            )}
           </div>
         )
       },
@@ -225,10 +235,20 @@ export function AttendanceTable({
       cell: ({ row }) => {
         const item = row.original;
         const attendance = 'attendance' in item ? item.attendance : item;
+        const time = formatTime(attendance?.punchOut);
+        const date = attendance?.punchOut?.includes('T') ? formatDateLabel(attendance.punchOut) : null;
+
         return (
-          <div className="flex items-center gap-2 text-slate-600 font-bold">
-            <Clock className="h-3.5 w-3.5 text-rose-500" />
-            <span>{formatTime(attendance?.punchOut)}</span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 text-slate-600 font-bold">
+              <Clock className="h-3.5 w-3.5 text-rose-500" />
+              <span>{time}</span>
+            </div>
+            {date && (
+              <span className="text-[9px] text-slate-400 font-medium ml-5.5">
+                {date}
+              </span>
+            )}
           </div>
         )
       },

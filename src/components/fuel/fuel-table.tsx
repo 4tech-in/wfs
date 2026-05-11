@@ -55,6 +55,16 @@ export const getFuelColumns = (
       ),
     },
     {
+      accessorKey: "vehicleId.vehicleNo",
+      header: "Vehicle No.",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-slate-900">{row.original.vehicleId?.vehicleNo || "-"}</span>
+          <span className="text-[10px] text-slate-400 uppercase tracking-tighter">{row.original.vehicleId?.vehicleCode || "NO CODE"}</span>
+        </div>
+      ),
+    },
+    {
       accessorKey: "odometer",
       header: "Odometer",
       cell: ({ row }) => (

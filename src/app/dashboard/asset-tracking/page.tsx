@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Filter, Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Asset, AssetType, CreateAssetDto, UpdateAssetDto } from "@/types/asset"
 import { AssetTable, getAssetColumns } from "@/components/asset-tracking/asset-table"
@@ -24,6 +25,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 // Remove unused TODAY constant
 
 export default function AssetTrackingPage() {
+    const router = useRouter()
     const [typeFilter, setTypeFilter] = React.useState<AssetType | "All">("All")
     const [searchTerm, setSearchTerm] = React.useState("")
     const debouncedSearch = useDebounce(searchTerm, 500)
@@ -38,7 +40,7 @@ export default function AssetTrackingPage() {
     const updateMutation = useUpdateAssetMutation()
     const deleteMutation = useDeleteAssetMutation()
     
-    const { data: remindersResponse } = useRemindersQuery()
+    const { data: remindersResponse } = useRemindersQuery({ limit: 10000000 })
     const reminders = remindersResponse?.data || []
     const createReminderMutation = useCreateReminderMutation()
     const deleteReminderMutation = useDeleteReminderMutation()
@@ -48,7 +50,7 @@ export default function AssetTrackingPage() {
 
     const handleAdd = async (data: AssetFormValues) => {
         try {
-            const { setReminder, reminderFrequency, reminderTime, reminderStartDate, ...assetData } = data
+            const { setReminder, reminderFrequency, reminderTime, reminderStartDate, reminderInterval, recipientEmails, ...assetData } = data
             
             // Convert empty strings to null for optional fields
             const payload = Object.fromEntries(
@@ -58,13 +60,16 @@ export default function AssetTrackingPage() {
             const createdAsset = await createMutation.mutateAsync(payload)
             
             if (setReminder && createdAsset) {
+                const recipients = recipientEmails?.split(",").map(e => e.trim()).filter(Boolean)
                 await createReminderMutation.mutateAsync({
                     title: `Maintenance: ${createdAsset.name}`,
                     description: `Automated maintenance reminder for ${createdAsset.name} (${createdAsset.serialNumber})`,
                     enabled: true,
                     frequency: reminderFrequency,
-                    startDate: reminderStartDate || createdAsset.maintenanceDueDate || new Date().toISOString(),
+                    interval: reminderFrequency === "custom" ? (reminderInterval ? parseInt(reminderInterval) : 30) : undefined,
+                    startDate: reminderStartDate || new Date().toISOString(),
                     time: reminderTime,
+                    recipientEmails: recipients,
                     metadata: { assetId: createdAsset._id || createdAsset.id }
                 })
             }
@@ -77,7 +82,7 @@ export default function AssetTrackingPage() {
 
     const handleUpdate = async (id: string, data: AssetFormValues) => {
         try {
-            const { setReminder, reminderFrequency, reminderTime, reminderStartDate, ...assetData } = data
+            const { setReminder, reminderFrequency, reminderTime, reminderStartDate, reminderInterval, recipientEmails, ...assetData } = data
 
             // Convert empty strings to null for optional fields
             const payload = Object.fromEntries(
@@ -90,18 +95,29 @@ export default function AssetTrackingPage() {
             const existingReminder = reminders.find(r => r.metadata?.assetId === id)
             
             if (setReminder) {
-                // If frequency/time/date changed or no existing reminder, we update/create
+                const interval = reminderFrequency === "custom" ? (reminderInterval ? parseInt(reminderInterval) : 30) : undefined;
+                const recipients = recipientEmails?.split(",").map(e => e.trim()).filter(Boolean)
+                
+                // If frequency/time/date/interval/recipients changed or no existing reminder, we update/create
                 if (!existingReminder) {
                     await createReminderMutation.mutateAsync({
                         title: `Maintenance: ${updatedAsset.name}`,
                         description: `Automated maintenance reminder for ${updatedAsset.name} (${updatedAsset.serialNumber})`,
                         enabled: true,
                         frequency: reminderFrequency,
-                        startDate: reminderStartDate || updatedAsset.maintenanceDueDate || new Date().toISOString(),
+                        interval,
+                        startDate: reminderStartDate || new Date().toISOString(),
                         time: reminderTime,
+                        recipientEmails: recipients,
                         metadata: { assetId: updatedAsset._id || updatedAsset.id }
                     })
-                } else if (existingReminder.frequency !== reminderFrequency || existingReminder.time !== reminderTime || (reminderStartDate && existingReminder.startDate.split('T')[0] !== reminderStartDate)) {
+                } else if (
+                    existingReminder.frequency !== reminderFrequency || 
+                    existingReminder.time !== reminderTime || 
+                    existingReminder.interval !== interval ||
+                    JSON.stringify(existingReminder.recipientEmails || []) !== JSON.stringify(recipients || []) ||
+                    (reminderStartDate && existingReminder.startDate.split('T')[0] !== reminderStartDate)
+                ) {
                     // Delete and recreate (simplest way to update recurring schedule in this system)
                     await deleteReminderMutation.mutateAsync(existingReminder._id)
                     await createReminderMutation.mutateAsync({
@@ -109,8 +125,10 @@ export default function AssetTrackingPage() {
                         description: `Automated maintenance reminder for ${updatedAsset.name} (${updatedAsset.serialNumber})`,
                         enabled: true,
                         frequency: reminderFrequency,
-                        startDate: reminderStartDate || updatedAsset.maintenanceDueDate || new Date().toISOString(),
+                        interval,
+                        startDate: reminderStartDate || new Date().toISOString(),
                         time: reminderTime,
+                        recipientEmails: recipients,
                         metadata: { assetId: updatedAsset._id || updatedAsset.id }
                     })
                 }
@@ -182,7 +200,7 @@ export default function AssetTrackingPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <DataTableExport
-                        columns={getAssetColumns(() => {}, () => {})}
+                        columns={getAssetColumns(() => {}, () => {}, () => {})}
                         filename="assets_inventory_report"
                         fetchData={handleFetchAll}
                     />
@@ -247,6 +265,7 @@ export default function AssetTrackingPage() {
                 isLoading={isLoading}
                 onEdit={setEditingAsset}
                 onDelete={handleDelete}
+                onViewHistory={(id) => router.push(`/dashboard/asset-tracking/history/${id}`)}
                 searchValue={searchTerm}
                 onSearchChange={setSearchTerm}
             />
@@ -267,6 +286,8 @@ export default function AssetTrackingPage() {
                     frequency: reminders.find(r => r.metadata?.assetId === (editingAsset?._id || editingAsset?.id))?.frequency || "monthly",
                     time: reminders.find(r => r.metadata?.assetId === (editingAsset?._id || editingAsset?.id))?.time || "09:00",
                     startDate: reminders.find(r => r.metadata?.assetId === (editingAsset?._id || editingAsset?.id))?.startDate,
+                    interval: reminders.find(r => r.metadata?.assetId === (editingAsset?._id || editingAsset?.id))?.interval,
+                    recipientEmails: reminders.find(r => r.metadata?.assetId === (editingAsset?._id || editingAsset?.id))?.recipientEmails,
                     enabled: true
                 } : undefined}
             />

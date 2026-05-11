@@ -1,6 +1,6 @@
 import { Employee } from "./employee";
 
-export type AssetType = "Laptop" | "Safety Gear" | "Specialized Tool" | "Uniform" | "Mobile Device" | "Electronics" | "Other" | (string & {});
+export type AssetType = "Laptop" | "Safety Gear" | "Specialized Tool" | "Uniform" | "Mobile Device" | "Electronics" | "HVAC" | "Other" | (string & {});
 export type AssetStatus = "In Stock" | "Issued" | "Returned" | "Under Maintenance" | "Damaged";
 export interface Asset {
   id?: string;
@@ -15,6 +15,7 @@ export interface Asset {
   maintenanceDueDate: string;
   lastMaintenanceDate?: string;
   maintenanceIntervalDays?: number;
+  maintenanceFrequency?: string;
   extraNote?: string;
 }
 

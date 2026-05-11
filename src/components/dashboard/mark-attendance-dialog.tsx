@@ -52,6 +52,7 @@ const attendanceSchema = z.object({
   punchInHour: z.string().optional(),
   punchInMinute: z.string().optional(),
   punchInPeriod: z.string().optional(),
+  punchOutDate: z.any().optional(),
   punchOutHour: z.string().optional(),
   punchOutMinute: z.string().optional(),
   punchOutPeriod: z.string().optional(),
@@ -143,6 +144,7 @@ export function MarkManualAttendanceDialog({
       punchInHour: inParts?.hour || "09",
       punchInMinute: inParts?.minute || "00",
       punchInPeriod: inParts?.period || "AM",
+      punchOutDate: initialData?.punchOut ? new Date(initialData.punchOut) : (initialData?.date || new Date()),
       punchOutHour: outParts?.hour || "06",
       punchOutMinute: outParts?.minute || "00",
       punchOutPeriod: outParts?.period || "PM",
@@ -194,7 +196,8 @@ export function MarkManualAttendanceDialog({
           if (values.punchOutPeriod === "PM" && h < 12) h += 12
           if (values.punchOutPeriod === "AM" && h === 12) h = 0
 
-          const punchOutDate = setSeconds(setMinutes(setHours(new Date(date), h), parseInt(punchOutMinute)), 0)
+          const punchOutDateVal = values.punchOutDate || date
+          const punchOutDate = setSeconds(setMinutes(setHours(new Date(punchOutDateVal), h), parseInt(punchOutMinute)), 0)
           punchOut = addMinutes(punchOutDate, 330).toISOString()
         }
       }
@@ -228,6 +231,7 @@ export function MarkManualAttendanceDialog({
         punchInHour: inParts?.hour || "09",
         punchInMinute: inParts?.minute || "00",
         punchInPeriod: inParts?.period || "AM",
+        punchOutDate: initialData.punchOut ? new Date(initialData.punchOut) : (initialData.date || new Date()),
         punchOutHour: outParts?.hour || "06",
         punchOutMinute: outParts?.minute || "00",
         punchOutPeriod: outParts?.period || "PM",
@@ -462,6 +466,39 @@ export function MarkManualAttendanceDialog({
                   <FormLabel className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Clock className="h-3 w-3" /> Punch Out
                   </FormLabel>
+                  
+                  <FormField
+                    control={form.control}
+                    name="punchOutDate"
+                    render={({ field }) => (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "h-10 w-full pl-3 text-left font-normal rounded-lg border-slate-200 bg-white/50 hover:bg-white transition-all text-xs",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? format(field.value, "dd MMM yyyy") : <span>Pick date</span>}
+                              <CalendarIcon className="ml-auto h-3 w-3 text-slate-400" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            className="rounded-2xl"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  />
+
                   <div className="flex gap-2">
                     <FormField
                       control={form.control}

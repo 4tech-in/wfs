@@ -14,6 +14,17 @@ export function useAssetsQuery(params?: AssetQueryParams) {
 }
 
 /**
+ * Hook to fetch a single asset by ID
+ */
+export function useAssetQuery(id: string) {
+  return useQuery({
+    queryKey: QUERY_KEYS.assets.detail(id),
+    queryFn: () => assetService.getById(id),
+    enabled: !!id,
+  });
+}
+
+/**
  * Hook to create a new asset
  */
 export function useCreateAssetMutation() {

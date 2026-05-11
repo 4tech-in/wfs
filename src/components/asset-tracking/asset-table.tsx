@@ -14,6 +14,7 @@ interface AssetTableProps {
   isLoading?: boolean
   onEdit: (asset: Asset) => void
   onDelete: (id: string) => void
+  onViewHistory: (id: string) => void
   searchValue: string
   onSearchChange: (value: string) => void
 }
@@ -28,7 +29,8 @@ const isMaintenanceDueSoon = (dateStr: string) => {
 
 export const getAssetColumns = (
   onEdit: (asset: Asset) => void,
-  onDelete: (id: string) => void
+  onDelete: (id: string) => void,
+  onViewHistory: (id: string) => void
 ): ColumnDef<Asset>[] => {
   return [
     {
@@ -127,6 +129,24 @@ export const getAssetColumns = (
       },
     },
     {
+      id: "history",
+      header: "History",
+      cell: ({ row }) => {
+        const asset = row.original
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-lg text-indigo-600 border-indigo-100 bg-indigo-50/50 hover:bg-indigo-100 hover:border-indigo-200 gap-1.5 font-bold"
+            onClick={() => onViewHistory((asset._id || asset.id) as string)}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            History
+          </Button>
+        )
+      }
+    },
+    {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
@@ -162,12 +182,13 @@ export function AssetTable({
   isLoading = false,
   onEdit,
   onDelete,
+  onViewHistory,
   searchValue,
   onSearchChange,
 }: AssetTableProps) {
   const columns = React.useMemo(
-    () => getAssetColumns(onEdit, onDelete),
-    [onEdit, onDelete]
+    () => getAssetColumns(onEdit, onDelete, onViewHistory),
+    [onEdit, onDelete, onViewHistory]
   )
 
   return (

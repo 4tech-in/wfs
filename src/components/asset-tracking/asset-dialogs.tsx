@@ -40,7 +40,7 @@ interface EditAssetDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onUpdate: (id: string, data: AssetFormValues) => void
-  initialReminder?: { frequency: ReminderFrequency; time: string; enabled: boolean; startDate?: string }
+  initialReminder?: { frequency: ReminderFrequency; time: string; enabled: boolean; startDate?: string; interval?: number; recipientEmails?: string[] }
 }
 
 export function EditAssetDialog({ asset, open, onOpenChange, onUpdate, initialReminder }: EditAssetDialogProps) {

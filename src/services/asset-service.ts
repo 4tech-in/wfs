@@ -35,6 +35,19 @@ export const assetService = {
   },
 
   /**
+   * Get an asset by ID
+   */
+  getById: async (id: string): Promise<Asset> => {
+    try {
+      const response = await apiClient.get<void, { data: Asset }>(`/assets/${id}`);
+      return response.data;
+    } catch (error: unknown) {
+      toast.error('Failed to fetch asset details');
+      throw error;
+    }
+  },
+
+  /**
    * Update an existing asset
    */
   update: async (id: string, data: UpdateAssetDto): Promise<Asset> => {

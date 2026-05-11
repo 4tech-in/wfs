@@ -12,6 +12,7 @@ export interface Reminder {
   nextOccurrence?: string;
   lastEmailSentDate?: string;
   createdBy: string;
+  recipientEmails?: string[];
   metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
@@ -25,5 +26,6 @@ export interface CreateReminderDto {
   interval?: number;
   startDate: string;
   time: string;
+  recipientEmails?: string[];
   metadata?: Record<string, unknown>;
 }

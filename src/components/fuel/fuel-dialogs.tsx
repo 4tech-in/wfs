@@ -34,6 +34,7 @@ import { useVehiclesInfiniteQuery } from "@/hooks/queries/use-vehicles"
 import { InfiniteScrollSelect } from "@/components/ui/infinite-scroll-select"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Vehicle } from "@/types/vehicle"
+import { fuelService } from "@/services/fuel-service"
 import {
   Select,
   SelectContent,
@@ -108,6 +109,43 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
 
   // Watch fields for calculations
   const images = useWatch({ control: form.control, name: "images" })
+  const selectedVehicleId = useWatch({ control: form.control, name: "vehicleId" })
+  const [prevOdometer, setPrevOdometer] = React.useState<number | null>(null)
+  const [isFetchingPrevOdo, setIsFetchingPrevOdo] = React.useState(false)
+
+  // Fetch previous odometer when vehicle changes
+  React.useEffect(() => {
+    const fetchPrevOdometer = async () => {
+      if (selectedVehicleId) {
+        const vehicle = vehicles.find(v => v._id === selectedVehicleId)
+        if (vehicle) {
+          setIsFetchingPrevOdo(true)
+          try {
+            const res = await fuelService.getAll({ 
+              search: vehicle.vehicleNo, 
+              limit: 1, 
+              sortBy: 'createdAt', 
+              sortOrder: 'desc' 
+            })
+            if (res.data.length > 0) {
+              setPrevOdometer(res.data[0].odometer)
+            } else {
+              setPrevOdometer(null)
+            }
+          } catch (error) {
+            console.error("Failed to fetch prev odometer:", error)
+            setPrevOdometer(null)
+          } finally {
+            setIsFetchingPrevOdo(false)
+          }
+        }
+      } else {
+        setPrevOdometer(null)
+      }
+    }
+
+    fetchPrevOdometer()
+  }, [selectedVehicleId, vehicles])
 
   // File handling
   const handleFileDrop = React.useCallback(
@@ -260,7 +298,14 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
                   name="odometer"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Odometer Reading</FormLabel>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Odometer Reading</FormLabel>
+                        {selectedVehicleId && (
+                          <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                            {isFetchingPrevOdo ? "Fetching..." : `Prev: ${prevOdometer || "No record"}`}
+                          </span>
+                        )}
+                      </div>
                       <FormControl>
                         <Input type="number" placeholder="45678" {...field} />
                       </FormControl>

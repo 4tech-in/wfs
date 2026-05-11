@@ -38,12 +38,15 @@ const formSchema = z.object({
   issuedTo: z.string().optional(),
   issuedDate: z.string().optional(),
   status: z.enum(["In Stock", "Issued", "Returned", "Under Maintenance", "Damaged"] as const),
-  maintenanceDueDate: z.string().min(1, "Maintenance date is required"),
+  // maintenanceDueDate: z.string().min(1, "Maintenance date is required"),
+  maintenanceDueDate: z.string().optional(),
   extraNote: z.string().optional(),
   setReminder: z.boolean(),
   reminderFrequency: z.enum(["once", "daily", "weekly", "monthly", "yearly", "custom"]),
+  reminderInterval: z.string().optional().refine(val => !val || !isNaN(parseInt(val)), "Must be a number"),
   reminderStartDate: z.string().optional(),
   reminderTime: z.string(),
+  recipientEmails: z.string().optional(),
 }).refine((data) => {
   if (data.type === "Other" && (!data.otherType || data.otherType.trim() === "")) {
     return false;
@@ -62,17 +65,20 @@ export interface AssetFormValues {
   issuedTo?: string;
   issuedDate?: string;
   status: "In Stock" | "Issued" | "Returned" | "Under Maintenance" | "Damaged";
-  maintenanceDueDate: string;
+  // maintenanceDueDate: string;
+  maintenanceDueDate?: string;
   extraNote?: string;
   setReminder: boolean;
   reminderFrequency: ReminderFrequency;
+  reminderInterval?: string;
   reminderStartDate?: string;
   reminderTime: string;
+  recipientEmails?: string;
 }
 
 interface AssetFormProps {
   initialValues?: Partial<CreateAssetDto>
-  initialReminder?: { frequency: ReminderFrequency; time: string; enabled: boolean; startDate?: string }
+  initialReminder?: { frequency: ReminderFrequency; time: string; enabled: boolean; startDate?: string; interval?: number; recipientEmails?: string[] }
   onSubmit: (data: AssetFormValues) => void
   isLoading?: boolean
   isEdit?: boolean
@@ -105,8 +111,10 @@ export function AssetForm({
       extraNote: initialValues?.extraNote || "",
       setReminder: !!initialReminder?.enabled,
       reminderFrequency: (initialReminder?.frequency as ReminderFrequency) || "monthly",
+      reminderInterval: initialReminder?.interval ? String(initialReminder.interval) : "30",
       reminderStartDate: initialReminder?.startDate ? initialReminder.startDate.split('T')[0] : (initialValues?.maintenanceDueDate ? initialValues.maintenanceDueDate.split('T')[0] : new Date().toISOString().split('T')[0]),
       reminderTime: initialReminder?.time || "09:00",
+      recipientEmails: initialReminder?.recipientEmails?.join(", ") || "",
     } as AssetFormValues;
   }, [initialValues, now, initialReminder])
 
@@ -123,6 +131,11 @@ export function AssetForm({
   const setReminder = useWatch({
     control: form.control,
     name: "setReminder",
+  })
+
+  const reminderFrequency = useWatch({
+    control: form.control,
+    name: "reminderFrequency",
   })
 
   // Re-sync form if initialValues change (important for edit mode)
@@ -144,7 +157,7 @@ export function AssetForm({
       ...restOfData,
       type: actualType as string,
       issuedDate: data.issuedDate ? new Date(data.issuedDate).toISOString() : undefined,
-      maintenanceDueDate: new Date(data.maintenanceDueDate).toISOString(),
+      // maintenanceDueDate: new Date(data.maintenanceDueDate).toISOString(),
     }
     onSubmit(payload)
   }
@@ -279,7 +292,7 @@ export function AssetForm({
           />
         </div>
 
-        <FormField
+        {/* <FormField
           control={form.control}
           name="maintenanceDueDate"
           render={({ field }) => (
@@ -291,7 +304,7 @@ export function AssetForm({
               <FormMessage />
             </FormItem>
           )}
-        />
+        /> */}
 
         <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
           <FormField
@@ -323,7 +336,7 @@ export function AssetForm({
                   name="reminderStartDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Reminder Start Date</FormLabel>
+                      <FormLabel>Next Maintenance Date</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} className="bg-white" />
                       </FormControl>
@@ -357,6 +370,25 @@ export function AssetForm({
                   )}
                 />
               </div>
+              
+              {reminderFrequency === "custom" && (
+                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <FormField
+                    control={form.control}
+                    name="reminderInterval"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Interval (Days)</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} className="bg-white" placeholder="30" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -372,6 +404,21 @@ export function AssetForm({
                   )}
                 />
               </div>
+              
+              <FormField
+                control={form.control}
+                name="recipientEmails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Recipient Emails (comma separated)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="admin@example.com, manager@example.com" {...field} className="bg-white" />
+                    </FormControl>
+                    <p className="text-[10px] text-slate-400">Multiple emails should be separated by commas.</p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           )}
         </div>

@@ -66,12 +66,7 @@ export function AppSidebar() {
   const isCollapsed = state === "collapsed"
   
   // Initialize state directly from storage to avoid flicker on client-side
-  const [userRole, setUserRole] = React.useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return authStorage.getUser()?.role || null
-    }
-    return null
-  })
+  const [userRole, setUserRole] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     const user = authStorage.getUser()

@@ -13,6 +13,11 @@ export interface FuelRecord {
   };
   createdAt: string;
   updatedAt: string;
+  vehicleId?: {
+    _id: string;
+    vehicleNo: string;
+    vehicleCode: string;
+  };
 }
 
 export interface FuelExpensesResponse {

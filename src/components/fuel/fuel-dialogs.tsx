@@ -112,7 +112,6 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
   // Watch fields for calculations
   const images = useWatch({ control: form.control, name: "images" })
   const selectedVehicleId = useWatch({ control: form.control, name: "vehicleId" })
-  const [prevOdometer, setPrevOdometer] = React.useState<number | null>(null)
   const [isFetchingPrevOdo, setIsFetchingPrevOdo] = React.useState(false)
 
   // Fetch previous odometer when vehicle changes
@@ -130,28 +129,24 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
               sortOrder: 'desc' 
             })
             if (res.data.length > 0) {
-              setPrevOdometer(res.data[0].odometer)
               form.setValue("prevOdometer", res.data[0].odometer.toString())
             } else {
-              setPrevOdometer(null)
               form.setValue("prevOdometer", "")
             }
           } catch (error) {
             console.error("Failed to fetch prev odometer:", error)
-            setPrevOdometer(null)
             form.setValue("prevOdometer", "")
           } finally {
             setIsFetchingPrevOdo(false)
           }
         }
       } else {
-        setPrevOdometer(null)
         form.setValue("prevOdometer", "")
       }
     }
 
     fetchPrevOdometer()
-  }, [selectedVehicleId, vehicles])
+  }, [selectedVehicleId, vehicles, form])
 
   // File handling
   const handleFileDrop = React.useCallback(

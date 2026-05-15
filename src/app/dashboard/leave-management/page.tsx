@@ -191,10 +191,25 @@ export default function LeaveManagement() {
                             </DropdownMenuItem>
 
                             <DropdownMenuItem
-                                onClick={() => {
+                                onSelect={async () => {
                                     if (shareUrl) {
-                                        navigator.clipboard.writeText(shareUrl)
-                                        toast.success("Link copied to clipboard!")
+                                        try {
+                                            await navigator.clipboard.writeText(shareUrl)
+                                            toast.success("Link copied to clipboard!")
+                                        } catch (err) {
+                                            // Fallback for older browsers or non-secure contexts
+                                            const textArea = document.createElement("textarea")
+                                            textArea.value = shareUrl
+                                            document.body.appendChild(textArea)
+                                            textArea.select()
+                                            try {
+                                                document.execCommand('copy')
+                                                toast.success("Link copied to clipboard!")
+                                            } catch (copyErr) {
+                                                toast.error("Failed to copy link")
+                                            }
+                                            document.body.removeChild(textArea)
+                                        }
                                     }
                                 }}
                                 className="flex items-center gap-3 px-2 py-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border-t border-slate-50 mt-1 outline-none"

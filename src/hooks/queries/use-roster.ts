@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rosterService } from '@/services/roster-service';
 import { QUERY_KEYS } from '@/constants/query-keys';
-import { AssignRosterDto, AssignAttendancePolicyDto } from '@/types/roster';
+import { AssignRosterDto, AssignAttendancePolicyDto, Assign24HourPolicyDto } from '@/types/roster';
 
 /**
  * Hook to fetch all rosters
@@ -59,6 +59,20 @@ export function useAssignAttendancePolicyMutation() {
   
   return useMutation({
     mutationFn: (data: AssignAttendancePolicyDto) => rosterService.assignAttendancePolicy(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.rosters.all });
+    },
+  });
+}
+
+/**
+ * Hook to assign 24-hour policy to users
+ */
+export function useAssign24HourPolicyMutation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: Assign24HourPolicyDto) => rosterService.assign24HourPolicy(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.rosters.all });
     },

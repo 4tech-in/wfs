@@ -80,3 +80,9 @@ export interface AttendancePolicyUserResponse {
     totalPages: number;
   };
 }
+
+export interface Assign24HourPolicyDto {
+  userIds: string[];
+  is24HourShift: boolean;
+}
+

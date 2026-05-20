@@ -1,5 +1,5 @@
 import apiClient from '@/lib/api-client';
-import { Roster, AssignRosterDto, RosterResponse, AssignAttendancePolicyDto, AttendancePolicyUserResponse } from '@/types/roster';
+import { Roster, AssignRosterDto, RosterResponse, AssignAttendancePolicyDto, AttendancePolicyUserResponse, Assign24HourPolicyDto } from '@/types/roster';
 import { toast } from 'sonner';
 
 // Mock data for initial state
@@ -103,6 +103,20 @@ export const rosterService = {
       toast.success('Attendance policy assigned successfully');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to assign attendance policy';
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
+
+  /**
+   * Assign 24-hour policy to users
+   */
+  assign24HourPolicy: async (data: Assign24HourPolicyDto): Promise<void> => {
+    try {
+      await apiClient.post<Assign24HourPolicyDto, void>('/roster/assign-24hour-policy', data);
+      toast.success('24-hour policy assigned successfully');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to assign 24-hour policy';
       toast.error(errorMessage);
       throw error;
     }

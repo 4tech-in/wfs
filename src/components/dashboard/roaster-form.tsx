@@ -53,6 +53,7 @@ const formSchema = z.object({
   shiftId: z.string().min(1, "Select a shift"),
   startDate: z.string().min(1, "Select start date"),
   endDate: z.string().min(1, "Select end date"),
+  is24HourShift: z.boolean(),
 }).refine((data) => {
   const start = new Date(data.startDate);
   const end = new Date(data.endDate);
@@ -63,7 +64,7 @@ const formSchema = z.object({
 });
 
 interface RoasterFormProps {
-  onSubmit: (data: AssignRosterDto) => void
+  onSubmit: (data: AssignRosterDto & { is24HourShift: boolean }) => void
   isLoading?: boolean
   initialValues?: {
     employeeIds: string[]
@@ -71,6 +72,7 @@ interface RoasterFormProps {
     startDate: string
     endDate: string
     companyId?: string
+    is24HourShift?: boolean
   }
   initialEmployees?: AttendancePolicyUser[]
 }
@@ -84,6 +86,7 @@ export function RoasterForm({ onSubmit, isLoading, initialValues, initialEmploye
       shiftId: "",
       startDate: new Date().toISOString().split("T")[0],
       endDate: new Date().toISOString().split("T")[0],
+      is24HourShift: false,
     },
   })
 
@@ -136,7 +139,10 @@ export function RoasterForm({ onSubmit, isLoading, initialValues, initialEmploye
   // Reset form and selection map when initialValues change (i.e., when editing a different row)
   React.useEffect(() => {
     if (initialValues) {
-      form.reset(initialValues)
+      form.reset({
+        is24HourShift: false,
+        ...initialValues
+      })
     } else {
       form.reset({
         companyId: "",
@@ -144,6 +150,7 @@ export function RoasterForm({ onSubmit, isLoading, initialValues, initialEmploye
         shiftId: "",
         startDate: new Date().toISOString().split("T")[0],
         endDate: new Date().toISOString().split("T")[0],
+        is24HourShift: false,
       })
     }
 
@@ -490,6 +497,34 @@ export function RoasterForm({ onSubmit, isLoading, initialValues, initialEmploye
             )}
           />
         </div>
+
+        {/* 24-Hour Shift Policy */}
+        <FormField
+          control={form.control}
+          name="is24HourShift"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-xl border border-slate-200/80 p-4 bg-white shadow-sm transition-all hover:bg-slate-50/50">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  className="rounded-md border-slate-300 text-emerald-600 focus-visible:ring-emerald-500 data-[state=checked]:bg-[#2eb88a] data-[state=checked]:border-[#2eb88a]"
+                />
+              </FormControl>
+              <div 
+                className="space-y-1 leading-none cursor-pointer select-none flex-1" 
+                onClick={() => field.onChange(!field.value)}
+              >
+                <FormLabel className="text-sm font-semibold text-slate-900 cursor-pointer">
+                  24 Hours Shift
+                </FormLabel>
+                <p className="text-xs text-slate-500 font-medium">
+                  Apply a continuous 24-hour shift policy to the selected employees.
+                </p>
+              </div>
+            </FormItem>
+          )}
+        />
 
         <Button 
           type="submit" 

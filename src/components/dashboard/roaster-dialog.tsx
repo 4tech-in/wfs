@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { RoasterForm } from "./roaster-form"
-import { useAssignAttendancePolicyMutation } from "@/hooks/queries/use-roster"
+import { useAssignAttendancePolicyMutation, useAssign24HourPolicyMutation } from "@/hooks/queries/use-roster"
 import { AssignRosterDto, AttendancePolicyUser } from "@/types/roster"
 
 interface RoasterDialogProps {
@@ -23,6 +23,7 @@ interface RoasterDialogProps {
     startDate: string
     endDate: string
     companyId?: string
+    is24HourShift?: boolean
   }
   title?: string
   description?: string
@@ -32,8 +33,9 @@ interface RoasterDialogProps {
 export function RoasterDialog({ trigger, initialValues, title, description, initialEmployees }: RoasterDialogProps) {
   const [open, setOpen] = React.useState(false)
   const assignMutation = useAssignAttendancePolicyMutation()
+  const assign24HourMutation = useAssign24HourPolicyMutation()
 
-  const onSubmit = async (data: AssignRosterDto) => {
+  const onSubmit = async (data: AssignRosterDto & { is24HourShift: boolean }) => {
     try {
       await assignMutation.mutateAsync({
         userIds: data.employeeIds,
@@ -41,6 +43,12 @@ export function RoasterDialog({ trigger, initialValues, title, description, init
         startDate: data.startDate,
         endDate: data.endDate,
       })
+      if (data.is24HourShift) {
+        await assign24HourMutation.mutateAsync({
+          userIds: data.employeeIds,
+          is24HourShift: true,
+        })
+      }
       setOpen(false)
     } catch {
       // Error handled by mutation toast or service
@@ -68,7 +76,7 @@ export function RoasterDialog({ trigger, initialValues, title, description, init
         </DialogHeader>
         <RoasterForm 
           onSubmit={onSubmit} 
-          isLoading={assignMutation.isPending} 
+          isLoading={assignMutation.isPending || assign24HourMutation.isPending} 
           initialValues={initialValues}
           initialEmployees={initialEmployees}
         />

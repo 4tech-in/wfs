@@ -196,7 +196,7 @@ export default function LeaveManagement() {
                                         try {
                                             await navigator.clipboard.writeText(shareUrl)
                                             toast.success("Link copied to clipboard!")
-                                        } catch (err) {
+                                        } catch {
                                             // Fallback for older browsers or non-secure contexts
                                             const textArea = document.createElement("textarea")
                                             textArea.value = shareUrl
@@ -205,7 +205,7 @@ export default function LeaveManagement() {
                                             try {
                                                 document.execCommand('copy')
                                                 toast.success("Link copied to clipboard!")
-                                            } catch (copyErr) {
+                                            } catch {
                                                 toast.error("Failed to copy link")
                                             }
                                             document.body.removeChild(textArea)

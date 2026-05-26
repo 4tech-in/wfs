@@ -60,8 +60,8 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   pageCount,
-  pagination,
-  onPaginationChange,
+  pagination: externalPagination,
+  onPaginationChange: externalOnPaginationChange,
   onSortingChange,
   isLoading = false,
   searchKey,
@@ -79,6 +79,14 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [internalRowSelection, setInternalRowSelection] = React.useState({})
   
+  const [localPagination, setLocalPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+
+  const pagination = externalPagination ?? localPagination
+  const onPaginationChange = externalOnPaginationChange ?? setLocalPagination
+
   const rowSelection = externalRowSelection ?? internalRowSelection
   const onRowSelectionChange = React.useCallback((updaterOrValue: Updater<Record<string, boolean>>) => {
     const nextValue = typeof updaterOrValue === 'function' 
@@ -99,7 +107,7 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = React.useState<SortingState>([])
 
   // Determine if we are using server-side pagination
-  const isServerSide = !!onPaginationChange && !!pagination
+  const isServerSide = !!externalOnPaginationChange && !!externalPagination
 
   // Calculate the total number of pages if not explicitly provided
   const effectivePageCount = React.useMemo(() => {
@@ -111,17 +119,19 @@ export function DataTable<TData, TValue>({
     return -1
   }, [isServerSide, pageCount, totalItems, pagination?.pageSize])
 
-  const internalOnPaginationChange = React.useCallback(
+  const handlePaginationChange = React.useCallback(
     (updaterOrValue: Updater<PaginationState>) => {
-      if (onPaginationChange && pagination) {
+      if (externalOnPaginationChange && externalPagination) {
         const nextPagination =
           typeof updaterOrValue === "function"
-            ? updaterOrValue(pagination)
+            ? updaterOrValue(externalPagination)
             : updaterOrValue
-        onPaginationChange(nextPagination)
+        externalOnPaginationChange(nextPagination)
+      } else {
+        setLocalPagination(updaterOrValue)
       }
     },
-    [onPaginationChange, pagination]
+    [externalOnPaginationChange, externalPagination]
   )
 
   const internalOnSortingChange = React.useCallback(
@@ -152,14 +162,17 @@ export function DataTable<TData, TValue>({
         const { pagination } = table.getState()
         return (
           <div className="text-slate-500 font-medium text-center">
-            {(pagination.pageIndex * pagination.pageSize) + row.index + 1}
+            {isServerSide 
+              ? (pagination.pageIndex * pagination.pageSize) + row.index + 1
+              : row.index + 1
+            }
           </div>
         )
       },
     }
 
     return [srNoColumn, ...columns]
-  }, [columns, showSrNo])
+  }, [columns, showSrNo, isServerSide])
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -170,7 +183,7 @@ export function DataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
       columnFilters,
-      ...(isServerSide && pagination ? { pagination } : {}),
+      pagination,
     },
     manualPagination: isServerSide,
     manualSorting: isServerSide,
@@ -181,7 +194,7 @@ export function DataTable<TData, TValue>({
     onSortingChange: internalOnSortingChange,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    onPaginationChange: isServerSide ? internalOnPaginationChange : undefined,
+    onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),

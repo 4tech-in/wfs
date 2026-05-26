@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { RefreshCw, Upload, Plus, CalendarIcon, ClipboardCheck, Search } from "lucide-react"
+import { RefreshCw, Upload, Plus, CalendarIcon, ClipboardCheck, Search, Download, FileSpreadsheet, FileText, FileDown, Loader2 } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { AttendanceUploadDialog } from "@/components/dashboard/attendance-upload-dialog"
@@ -36,6 +36,15 @@ import {
     AlertTriangle 
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
+import { attendanceService } from "@/services/attendance-service"
+import { exportToCSV, exportToExcel, exportToPDF } from "@/lib/export-utils"
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
 
 export default function AttendancePage() {
     return (
@@ -61,6 +70,7 @@ function AttendanceContent() {
     const [companyId, setCompanyId] = React.useState<string>(urlCompanyId || "all")
     const [search, setSearch] = React.useState("")
     const [debouncedSearch, setDebouncedSearch] = React.useState("")
+    const [isExporting, setIsExporting] = React.useState(false)
     const [manualAttendance, setManualAttendance] = React.useState<{
         open: boolean;
         initialData?: ManualAttendanceInitialData;
@@ -94,6 +104,74 @@ function AttendanceContent() {
             setStatus(newStatus)
         }
         setPagination(prev => ({ ...prev, pageIndex: 0 }))
+    }
+
+    const handleExport = async (type: 'excel' | 'csv' | 'pdf') => {
+        if (!data || data.total === 0) {
+            toast.error("No data available to export")
+            return
+        }
+
+        try {
+            setIsExporting(true)
+            const startDateStr = date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")
+            const endDateStr = date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")
+            
+            // Fetch all records matching the exact active filters without pagination limitation
+            const allData = await attendanceService.getWithSummary(
+                startDateStr,
+                endDateStr,
+                1,
+                data.total || 1000,
+                status,
+                companyId === "all" ? undefined : companyId,
+                debouncedSearch
+            )
+
+            if (!allData?.data || allData.data.length === 0) {
+                toast.error("No records found to export")
+                return
+            }
+
+            // Format data nicely for representation in files
+            const exportData: Record<string, unknown>[] = allData.data.map((item, index) => {
+                const user = item.user
+                const attendance = item.attendance
+                const mins = Math.floor(attendance?.totalWorkedMinutes || 0)
+                const hours = Math.floor(mins / 60)
+                const remainingMins = mins % 60
+                
+                return {
+                    "S.No": index + 1,
+                    "Employee Name": user?.otherName || user?.name || "N/A",
+                    "Employee ID": user?.employeeId || "N/A",
+                    "Designation": user?.designation || "N/A",
+                    "Company": user?.company?.name || user?.companyName || "N/A",
+                    "Punch In": attendance?.punchIn ? (attendance.punchIn.includes('T') ? attendance.punchIn.split('T')[1].substring(0, 5) : attendance.punchIn) : "--:--",
+                    "Punch Out": attendance?.punchOut ? (attendance.punchOut.includes('T') ? attendance.punchOut.split('T')[1].substring(0, 5) : attendance.punchOut) : "--:--",
+                    "Duration": `${hours}h ${remainingMins}m`,
+                    "Overtime": `${attendance?.overtimeHours || 0}h`,
+                    "Status": item.status || "N/A"
+                }
+            })
+
+            const formattedDate = date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")
+            const filename = `Attendance_Report_${formattedDate}`
+
+            if (type === 'csv') {
+                exportToCSV(exportData, filename)
+            } else if (type === 'excel') {
+                exportToExcel(exportData, filename, "Attendance")
+            } else if (type === 'pdf') {
+                exportToPDF(exportData, filename, `Attendance Report - ${format(date || new Date(), "dd MMM yyyy")}`)
+            }
+            toast.success(`Exported to ${type.toUpperCase()} successfully`)
+        } catch (err) {
+            console.error("Export failed", err)
+            toast.error("Failed to export data")
+        } finally {
+            setIsExporting(false)
+        }
     }
 
     return (
@@ -167,6 +245,46 @@ function AttendanceContent() {
                     >
                         <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                     </Button>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button 
+                                variant="outline" 
+                                disabled={isExporting || isLoading || !data || data.total === 0}
+                                className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"
+                            >
+                                {isExporting ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+                                ) : (
+                                    <Download className="h-4 w-4 text-emerald-500" />
+                                )}
+                                <span className="font-semibold text-sm">Export</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-xl min-w-[160px]">
+                            <DropdownMenuItem 
+                                className="gap-2 font-semibold text-xs text-slate-700 rounded-lg cursor-pointer py-2.5"
+                                onClick={() => handleExport('excel')}
+                            >
+                                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                                Export to Excel
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                                className="gap-2 font-semibold text-xs text-slate-700 rounded-lg cursor-pointer py-2.5"
+                                onClick={() => handleExport('csv')}
+                            >
+                                <FileText className="h-4 w-4 text-blue-600" />
+                                Export to CSV
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                                className="gap-2 font-semibold text-xs text-slate-700 rounded-lg cursor-pointer py-2.5"
+                                onClick={() => handleExport('pdf')}
+                            >
+                                <FileDown className="h-4 w-4 text-rose-600" />
+                                Export to PDF
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     
                     {!isHr && (
                         <MarkLeaveDialog

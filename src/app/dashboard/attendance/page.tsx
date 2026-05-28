@@ -144,6 +144,7 @@ function AttendanceContent() {
                 return {
                     "S.No": index + 1,
                     "Employee Name": user?.otherName || user?.name || "N/A",
+                    "Unique ID": user?.uniqueId || "N/A",
                     "Employee ID": user?.employeeId || "N/A",
                     "Designation": user?.designation || "N/A",
                     "Company": user?.company?.name || user?.companyName || "N/A",

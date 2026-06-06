@@ -6,6 +6,7 @@ export const FUEL_QUERY_KEYS = {
   all: ['fuel'] as const,
   list: (params?: FuelQueryParams) => [...FUEL_QUERY_KEYS.all, 'list', params] as const,
   stats: () => [...FUEL_QUERY_KEYS.all, 'stats'] as const,
+  cards: (params?: any) => [...FUEL_QUERY_KEYS.all, 'cards', params] as const,
 };
 
 /**
@@ -25,6 +26,19 @@ export function useAddFuelMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateFuelDto) => fuelService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.all });
+    },
+  });
+}
+
+/**
+ * Hook to update a fuel expense
+ */
+export function useUpdateFuelMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreateFuelDto }) => fuelService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.all });
     },
@@ -64,6 +78,46 @@ export function useAddCardBalanceMutation() {
     mutationFn: (data: { amount: number; note?: string }) => fuelService.addCardBalance(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.stats() });
+      queryClient.invalidateQueries({ queryKey: ['fuel'] });
+    },
+  });
+}
+
+/**
+ * Hook to fetch all fuel cards balance entries
+ */
+export function useFuelCardsQuery(params?: any) {
+  return useQuery({
+    queryKey: FUEL_QUERY_KEYS.cards(params),
+    queryFn: () => fuelService.getFuelCards(params),
+  });
+}
+
+/**
+ * Hook to update a fuel card balance entry
+ */
+export function useUpdateCardBalanceMutation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { amount: number; note?: string } }) => 
+      fuelService.updateCardBalance(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.all });
+    },
+  });
+}
+
+/**
+ * Hook to delete a fuel card balance entry
+ */
+export function useDeleteCardBalanceMutation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: string) => fuelService.deleteCardBalance(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.all });
     },
   });
 }

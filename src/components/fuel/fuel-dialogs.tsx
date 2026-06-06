@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Upload, X, FileImage, CalendarIcon } from "lucide-react"
-import { useAddFuelMutation, useAddCardBalanceMutation } from "@/hooks/queries/use-fuel"
+import { Upload, X, FileImage, CalendarIcon, Edit2, Trash2 } from "lucide-react"
+import { useAddFuelMutation, useAddCardBalanceMutation, useUpdateCardBalanceMutation, useFuelCardsQuery, useDeleteCardBalanceMutation, useUpdateFuelMutation } from "@/hooks/queries/use-fuel"
 import {
   Popover,
   PopoverContent,
@@ -52,6 +52,8 @@ const fuelFormSchema = z.object({
   ratePerLtr: z.string().min(1, "Rate per litre is required").refine(val => !isNaN(parseFloat(val)), "Must be a number"),
   totalAmount: z.string().min(1, "Total amount is required").refine(val => !isNaN(parseFloat(val)), "Must be a number"),
   images: z.array(z.instanceof(File)).optional(),
+  average: z.string().optional(),
+  totalFuel: z.string().min(1, "Total fuel is required").refine(val => !isNaN(parseFloat(val)), "Must be a number"),
 })
 
 export type FuelFormValues = z.infer<typeof fuelFormSchema>
@@ -61,10 +63,12 @@ interface AddFuelDialogProps {
   onOpenChange: (open: boolean) => void
   onAdd?: () => void
   initialValues?: Partial<FuelFormValues>
+  editId?: string
 }
 
-export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddFuelDialogProps) {
+export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId }: AddFuelDialogProps) {
   const createMutation = useAddFuelMutation()
+  const updateMutation = useUpdateFuelMutation()
   const [vehicleSearch, setVehicleSearch] = React.useState("")
   const debouncedVehicleSearch = useDebounce(vehicleSearch, 400)
 
@@ -95,6 +99,8 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
       ratePerLtr: "",
       totalAmount: "",
       images: [],
+      average: "",
+      totalFuel: "",
       ...initialValues,
     },
   })
@@ -110,14 +116,34 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
   }, [open, initialValues, form])
 
   // Watch fields for calculations
-  const images = useWatch({ control: form.control, name: "images" })
-  const selectedVehicleId = useWatch({ control: form.control, name: "vehicleId" })
+  const images = form.watch("images")
+  const selectedVehicleId = form.watch("vehicleId")
+  const odometerVal = form.watch("odometer")
+  const prevOdometerVal = form.watch("prevOdometer")
+  const ratePerLtrVal = form.watch("ratePerLtr")
+  const totalAmountVal = form.watch("totalAmount")
+  const totalFuelVal = form.watch("totalFuel")
   const [isFetchingPrevOdo, setIsFetchingPrevOdo] = React.useState(false)
+
+  // Derived calculated values
+  const parsedOdo = parseFloat(odometerVal || "0")
+  const parsedPrev = parseFloat(prevOdometerVal || "0")
+  const parsedTotalFuel = parseFloat(totalFuelVal || "0")
+  const displayAverage = parsedTotalFuel > 0 && parsedOdo > parsedPrev && prevOdometerVal !== "" && prevOdometerVal !== undefined ? ((parsedOdo - parsedPrev) / parsedTotalFuel).toFixed(2) : ""
+
+  // Auto-calculate totalAmount based on ratePerLtr and totalFuel
+  React.useEffect(() => {
+    const rate = parseFloat(ratePerLtrVal || "0")
+    const litres = parseFloat(totalFuelVal || "0")
+    if (rate > 0 && litres > 0) {
+      form.setValue("totalAmount", (rate * litres).toFixed(2))
+    }
+  }, [ratePerLtrVal, totalFuelVal, form])
 
   // Fetch previous odometer when vehicle changes
   React.useEffect(() => {
     const fetchPrevOdometer = async () => {
-      if (selectedVehicleId) {
+      if (selectedVehicleId && !editId) {
         const vehicle = vehicles.find(v => v._id === selectedVehicleId)
         if (vehicle) {
           setIsFetchingPrevOdo(true)
@@ -140,13 +166,13 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
             setIsFetchingPrevOdo(false)
           }
         }
-      } else {
+      } else if (!selectedVehicleId) {
         form.setValue("prevOdometer", "")
       }
     }
 
     fetchPrevOdometer()
-  }, [selectedVehicleId, vehicles, form])
+  }, [selectedVehicleId, vehicles, form, editId])
 
   // File handling
   const handleFileDrop = React.useCallback(
@@ -174,15 +200,22 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
 
   const onSubmit = async (data: FuelFormValues) => {
     try {
-      await createMutation.mutateAsync({
+      const payload = {
         fillingDate: data.fillingDate,
         vehicleId: data.vehicleId,
         odometer: parseFloat(data.odometer),
         fuelType: data.fuelType,
         ratePerLtr: parseFloat(data.ratePerLtr),
         totalAmount: parseFloat(data.totalAmount),
+        totalFuel: parseFloat(data.totalFuel || "0"),
         images: data.images || [],
-      })
+      }
+
+      if (editId) {
+        await updateMutation.mutateAsync({ id: editId, data: payload })
+      } else {
+        await createMutation.mutateAsync(payload)
+      }
 
       form.reset()
       onOpenChange(false)
@@ -192,11 +225,13 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
     }
   }
 
+  const isPending = createMutation.isPending || updateMutation.isPending
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>Log Fuel Expense</DialogTitle>
+          <DialogTitle>{editId ? "Edit Fuel Expense" : "Log Fuel Expense"}</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
@@ -270,9 +305,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              </div>              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="prevOdometer"
@@ -286,6 +319,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
                           disabled 
                           placeholder={isFetchingPrevOdo ? "Fetching..." : "No previous record"}
                           className="bg-slate-50/50 border-slate-200 text-slate-500 font-medium cursor-not-allowed" 
+                          onWheel={(e) => e.currentTarget.blur()}
                         />
                       </FormControl>
                       <FormMessage />
@@ -299,7 +333,12 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
                     <FormItem>
                       <FormLabel>Current Odometer Reading</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="Enter current reading" {...field} />
+                        <Input 
+                          type="number" 
+                          placeholder="Enter current reading" 
+                          {...field} 
+                          onWheel={(e) => e.currentTarget.blur()}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -336,7 +375,13 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
                     <FormItem>
                       <FormLabel>Rate Per Litre</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" placeholder="96.00" {...field} />
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="96.00" 
+                          {...field} 
+                          onWheel={(e) => e.currentTarget.blur()}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -344,7 +389,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
                 />
               </div>
 
-              <div className="grid grid-cols-1">
+              <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="totalAmount"
@@ -352,14 +397,48 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
                     <FormItem>
                       <FormLabel>Total Amount</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" placeholder="3500.00" {...field} />
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="3500.00" 
+                          {...field} 
+                          onWheel={(e) => e.currentTarget.blur()}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="totalFuel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Total Fuel (L)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="Enter total fuel" 
+                          {...field} 
+                          onWheel={(e) => e.currentTarget.blur()}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div>
+                  <label className="text-sm font-medium text-slate-500">Average (km/L)</label>
+                  <Input 
+                    type="text" 
+                    value={displayAverage}
+                    readOnly
+                    placeholder="Auto calculated"
+                    className="bg-slate-50/50 border-slate-200 text-slate-500 font-medium cursor-not-allowed mt-2" 
+                  />
+                </div>
               </div>
-
               <div className="space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider bg-slate-50 p-2 rounded">
                   Receipt / Photos
@@ -417,8 +496,8 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues }: AddF
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Saving..." : "Save Entry"}
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Saving..." : (editId ? "Update Entry" : "Save Entry")}
               </Button>
             </div>
           </form>
@@ -439,10 +518,13 @@ interface AddCardBalanceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+  editId?: string
+  initialValues?: { amount: number; note?: string }
 }
 
-export function AddCardBalanceDialog({ open, onOpenChange, onSuccess }: AddCardBalanceDialogProps) {
+export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, initialValues }: AddCardBalanceDialogProps) {
   const addBalanceMutation = useAddCardBalanceMutation()
+  const updateBalanceMutation = useUpdateCardBalanceMutation()
   
   const form = useForm<BalanceFormValues>({
     resolver: zodResolver(balanceFormSchema),
@@ -452,12 +534,31 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess }: AddCardB
     },
   })
 
+  React.useEffect(() => {
+    if (open) {
+      form.reset({
+        amount: initialValues?.amount !== undefined ? String(initialValues.amount) : "",
+        note: initialValues?.note || "",
+      })
+    }
+  }, [open, initialValues, form])
+
   const onSubmit = async (data: BalanceFormValues) => {
     try {
-      await addBalanceMutation.mutateAsync({
-        amount: parseFloat(data.amount),
-        note: data.note,
-      })
+      if (editId) {
+        await updateBalanceMutation.mutateAsync({
+          id: editId,
+          data: {
+            amount: parseFloat(data.amount),
+            note: data.note,
+          }
+        })
+      } else {
+        await addBalanceMutation.mutateAsync({
+          amount: parseFloat(data.amount),
+          note: data.note,
+        })
+      }
       form.reset()
       onOpenChange(false)
       onSuccess?.()
@@ -466,11 +567,13 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess }: AddCardB
     }
   }
 
+  const isPending = addBalanceMutation.isPending || updateBalanceMutation.isPending
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add PetroCard Balance</DialogTitle>
+          <DialogTitle>{editId ? "Edit PetroCard Balance" : "Add PetroCard Balance"}</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
@@ -505,14 +608,93 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess }: AddCardB
             <div className="flex justify-end pt-4">
               <Button 
                 type="submit" 
-                disabled={addBalanceMutation.isPending}
+                disabled={isPending}
                 className="bg-[#2eb88a] hover:bg-[#26a67a] text-white"
               >
-                {addBalanceMutation.isPending ? "Adding..." : "Add Balance"}
+                {isPending ? "Saving..." : (editId ? "Update Balance" : "Add Balance")}
               </Button>
             </div>
           </form>
         </Form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface RechargeHistoryDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onEditClick: (recharge: { _id: string; amount: number; note?: string }) => void
+}
+
+export function RechargeHistoryDialog({ open, onOpenChange, onEditClick }: RechargeHistoryDialogProps) {
+  const { data: historyData, isLoading } = useFuelCardsQuery({ limit: 100 })
+  const deleteMutation = useDeleteCardBalanceMutation()
+
+  const list = historyData?.data || []
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[550px] max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Recharge History</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto pr-1 py-4 space-y-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2eb88a]"></div>
+            </div>
+          ) : list.length === 0 ? (
+            <div className="text-center py-12 text-slate-500 font-medium">
+              No recharge history found.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {list.map((item: any) => (
+                <div key={item._id} className="flex items-center justify-between py-3.5 group">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900 text-sm">
+                        ₹ {item.amount.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {format(new Date(item.createdAt), "dd MMM yyyy")}
+                      </span>
+                    </div>
+                    {item.note && (
+                      <p className="text-xs text-slate-500 italic max-w-[320px] truncate">
+                        {item.note}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 opacity-90 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-slate-500 hover:text-[#2eb88a] hover:bg-emerald-50 rounded-lg"
+                      onClick={() => onEditClick(item)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this recharge entry?")) {
+                          deleteMutation.mutate(item._id)
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )

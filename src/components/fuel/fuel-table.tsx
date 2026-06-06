@@ -5,7 +5,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "@/components/ui/data-table"
 import { PaginationState } from "@tanstack/react-table"
 import { format } from "date-fns"
-import { Trash2 } from "lucide-react"
+import { Trash2, Edit2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FuelRecord } from "@/types/fuel"
 
@@ -17,6 +17,7 @@ interface FuelTableProps {
   onPaginationChange?: (updater: PaginationState | ((prev: PaginationState) => PaginationState)) => void
   searchValue?: string
   onSearchChange?: (value: string) => void
+  onEdit: (record: FuelRecord) => void
   onDelete: (id: string) => void
   filterNode?: React.ReactNode
 }
@@ -44,6 +45,7 @@ function formatNumber(num?: number) {
 }
 
 export const getFuelColumns = (
+  onEdit: (record: FuelRecord) => void,
   onDelete: (id: string) => void
 ): ColumnDef<FuelRecord>[] => {
   return [
@@ -91,6 +93,27 @@ export const getFuelColumns = (
       ),
     },
     {
+      accessorKey: "totalFuel",
+      header: "Total Fuel",
+      cell: ({ row }) => {
+        const totalFuel = row.original.totalFuel ?? (row.original.ratePerLtr > 0 ? parseFloat((row.original.totalAmount / row.original.ratePerLtr).toFixed(2)) : 0);
+        return (
+          <span className="text-sm font-medium text-slate-600">
+            {totalFuel ? `${totalFuel} L` : "-"}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "average",
+      header: "Avg (km/L)",
+      cell: ({ row }) => (
+        <span className="text-sm font-bold text-slate-700">
+          {row.original.average ? `${row.original.average} km/L` : "-"}
+        </span>
+      ),
+    },
+    {
       accessorKey: "totalAmount",
       header: "Amount",
       cell: ({ row }) => (
@@ -101,14 +124,24 @@ export const getFuelColumns = (
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl h-9 w-9 transition-colors"
-          onClick={() => onDelete(row.original._id)}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-slate-400 hover:text-[#2eb88a] hover:bg-emerald-50 rounded-xl h-9 w-9 transition-colors"
+            onClick={() => onEdit(row.original)}
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl h-9 w-9 transition-colors"
+            onClick={() => onDelete(row.original._id)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       ),
     },
   ]
@@ -122,10 +155,11 @@ export function FuelTable({
   onPaginationChange = () => {},
   searchValue,
   onSearchChange,
+  onEdit,
   onDelete,
   filterNode,
 }: FuelTableProps) {
-  const columns = React.useMemo(() => getFuelColumns(onDelete), [onDelete])
+  const columns = React.useMemo(() => getFuelColumns(onEdit, onDelete), [onEdit, onDelete])
 
   return (
     <DataTable

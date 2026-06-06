@@ -6,6 +6,8 @@ export interface FuelRecord {
   totalAmount: number;
   fillingDate: string;
   images: string[];
+  average?: number;
+  totalFuel?: number;
   createdBy: {
     _id: string;
     name: string;

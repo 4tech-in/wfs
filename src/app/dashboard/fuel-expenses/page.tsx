@@ -5,7 +5,7 @@ import { Fuel, Plus, Car } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { FuelTable } from "@/components/fuel/fuel-table"
-import { AddFuelDialog, AddCardBalanceDialog } from "@/components/fuel/fuel-dialogs"
+import { AddFuelDialog, AddCardBalanceDialog, RechargeHistoryDialog } from "@/components/fuel/fuel-dialogs"
 import { useDebounce } from "@/hooks/use-debounce"
 import { PaginationState } from "@tanstack/react-table"
 import { FuelFormValues } from "@/components/fuel/fuel-dialogs"
@@ -13,8 +13,19 @@ import { useFuelCardStatsQuery, useFuelExpensesQuery, useDeleteFuelMutation } fr
 import { useVehiclesInfiniteQuery } from "@/hooks/queries/use-vehicles"
 import { InfiniteScrollSelect } from "@/components/ui/infinite-scroll-select"
 import { Vehicle } from "@/types/vehicle"
+import { FuelRecord } from "@/types/fuel"
 import { Card } from "@/components/ui/card"
 import { ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function FuelExpensePage() {
   const [pagination, setPagination] = React.useState<PaginationState>({
@@ -23,12 +34,16 @@ export default function FuelExpensePage() {
   })
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [isBalanceOpen, setIsBalanceOpen] = React.useState(false)
+  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
+  const [editingRecharge, setEditingRecharge] = React.useState<{ _id: string; amount: number; note?: string } | null>(null)
+  const [editingFuel, setEditingFuel] = React.useState<FuelRecord | null>(null)
   const [initialValues, setInitialValues] = React.useState<Partial<FuelFormValues> | undefined>()
   const [searchTerm, setSearchTerm] = React.useState("")
   const debouncedSearch = useDebounce(searchTerm, 400)
   const [selectedVehicleNo, setSelectedVehicleNo] = React.useState<string | undefined>()
   const [vehicleSearch, setVehicleSearch] = React.useState("")
   const debouncedVehicleSearch = useDebounce(vehicleSearch, 400)
+  const [deletingFuelId, setDeletingFuelId] = React.useState<string | null>(null)
 
   const {
     data: vehicleData,
@@ -116,14 +131,25 @@ export default function FuelExpensePage() {
                   <h2 className="text-4xl font-black tracking-tight italic font-heading">
                     ₹ {isStatsLoading ? "..." : (stats?.remaining ?? 0).toLocaleString()}
                   </h2>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setIsBalanceOpen(true)}
-                    className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-0 h-auto"
-                  >
-                    <Wallet className="mr-1.5 h-3 w-3" /> Recharge Card
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setIsBalanceOpen(true)}
+                      className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-0 h-auto"
+                    >
+                      <Wallet className="mr-1.5 h-3 w-3" /> Recharge Card
+                    </Button>
+                    <span className="text-white/20 text-xs">|</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setIsHistoryOpen(true)}
+                      className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-0 h-auto"
+                    >
+                      History
+                    </Button>
+                  </div>
                 </div>
                 <div className="bg-white/10 p-5 rounded-[24px] backdrop-blur-md border border-white/10 shadow-inner group-hover:scale-110 transition-transform duration-500">
                   <Fuel className="h-8 w-8 text-emerald-400" />
@@ -171,10 +197,11 @@ export default function FuelExpensePage() {
           setSearchTerm(val)
           setPagination((p) => ({ ...p, pageIndex: 0 }))
         }}
+        onEdit={(record) => {
+          setEditingFuel(record)
+        }}
         onDelete={(id) => {
-          if (confirm("Are you sure you want to delete this fuel record?")) {
-            deleteMutation.mutate(id)
-          }
+          setDeletingFuelId(id)
         }}
         filterNode={
           <div className="flex items-center gap-2">
@@ -213,15 +240,76 @@ export default function FuelExpensePage() {
       />
 
       <AddFuelDialog
-        open={isAddOpen}
-        onOpenChange={handleOpenChange}
-        initialValues={initialValues}
+        open={isAddOpen || !!editingFuel}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddOpen(false)
+            setEditingFuel(null)
+          } else {
+            setIsAddOpen(true)
+          }
+        }}
+        editId={editingFuel?._id}
+        initialValues={editingFuel ? {
+          fillingDate: editingFuel.fillingDate ? new Date(editingFuel.fillingDate).toISOString().substring(0, 10) : "",
+          vehicleId: typeof editingFuel.vehicleId === 'object' && editingFuel.vehicleId !== null ? (editingFuel.vehicleId as any)._id : String(editingFuel.vehicleId || ""),
+          odometer: String(editingFuel.odometer),
+          fuelType: editingFuel.fuelType || "Diesel",
+          ratePerLtr: String(editingFuel.ratePerLtr),
+          totalAmount: String(editingFuel.totalAmount),
+          average: editingFuel.average ? String(editingFuel.average) : "",
+          totalFuel: editingFuel.totalFuel ? String(editingFuel.totalFuel) : "",
+          images: [],
+        } : undefined}
       />
 
       <AddCardBalanceDialog
-        open={isBalanceOpen}
-        onOpenChange={setIsBalanceOpen}
+        open={isBalanceOpen || !!editingRecharge}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsBalanceOpen(false)
+            setEditingRecharge(null)
+          } else {
+            setIsBalanceOpen(true)
+          }
+        }}
+        editId={editingRecharge?._id}
+        initialValues={editingRecharge ? { amount: editingRecharge.amount, note: editingRecharge.note } : undefined}
       />
+
+      <RechargeHistoryDialog
+        open={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        onEditClick={(recharge) => {
+          setIsHistoryOpen(false)
+          setEditingRecharge(recharge)
+        }}
+      />
+
+      <AlertDialog open={!!deletingFuelId} onOpenChange={(open) => !open && setDeletingFuelId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this fuel record? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingFuelId) {
+                  deleteMutation.mutate(deletingFuelId)
+                  setDeletingFuelId(null)
+                }
+              }}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

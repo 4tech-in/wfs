@@ -237,7 +237,7 @@ export function ReminderTable({ data, isLoading }: ReminderTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Action</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to mark the reminder "{confirmingReminder?.title}" as done?
+              Are you sure you want to mark the reminder &quot;{confirmingReminder?.title}&quot; as done?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -254,7 +254,7 @@ export function ReminderTable({ data, isLoading }: ReminderTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Reminder Marked as Done</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <p>The reminder <strong>"{nextOccurrenceInfo?.title}"</strong> has been successfully processed.</p>
+              <p>The reminder <strong>&quot;{nextOccurrenceInfo?.title}&quot;</strong> has been successfully processed.</p>
               {nextOccurrenceInfo?.nextOccurrence && (
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-1 mt-2">
                   <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Next Occurrence</span>

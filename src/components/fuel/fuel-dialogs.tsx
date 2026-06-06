@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { useForm, useWatch } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { FuelRecord, FuelCardEntry } from "@/types/fuel"
 import {
   Dialog,
   DialogContent,
@@ -121,7 +122,6 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
   const odometerVal = form.watch("odometer")
   const prevOdometerVal = form.watch("prevOdometer")
   const ratePerLtrVal = form.watch("ratePerLtr")
-  const totalAmountVal = form.watch("totalAmount")
   const totalFuelVal = form.watch("totalFuel")
   const [isFetchingPrevOdo, setIsFetchingPrevOdo] = React.useState(false)
 
@@ -157,12 +157,12 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
               sortOrder: 'desc' 
             })
             if (editId) {
-              const currentIndex = res.data.findIndex((item: any) => item._id === editId)
+              const currentIndex = res.data.findIndex((item: FuelRecord) => item._id === editId)
               if (currentIndex !== -1 && currentIndex < res.data.length - 1) {
                 form.setValue("prevOdometer", res.data[currentIndex + 1].odometer.toString())
               } else {
                 const currentOdo = parseFloat(odometerVal || "0")
-                const prev = res.data.find((item: any) => item.odometer < currentOdo && item._id !== editId)
+                const prev = res.data.find((item: FuelRecord) => item.odometer < currentOdo && item._id !== editId)
                 if (prev) {
                   form.setValue("prevOdometer", prev.odometer.toString())
                 } else {
@@ -189,7 +189,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
     }
 
     fetchPrevOdometer()
-  }, [selectedVehicleId, vehicles, form, editId])
+  }, [selectedVehicleId, vehicles, form, editId, odometerVal])
 
   // File handling
   const handleFileDrop = React.useCallback(
@@ -668,7 +668,7 @@ export function RechargeHistoryDialog({ open, onOpenChange, onEditClick }: Recha
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {list.map((item: any) => (
+              {list.map((item: FuelCardEntry) => (
                 <div key={item._id} className="flex items-center justify-between py-3.5 group">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">

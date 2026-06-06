@@ -8,7 +8,6 @@ import { FuelTable } from "@/components/fuel/fuel-table"
 import { AddFuelDialog, AddCardBalanceDialog, RechargeHistoryDialog } from "@/components/fuel/fuel-dialogs"
 import { useDebounce } from "@/hooks/use-debounce"
 import { PaginationState } from "@tanstack/react-table"
-import { FuelFormValues } from "@/components/fuel/fuel-dialogs"
 import { useFuelCardStatsQuery, useFuelExpensesQuery, useDeleteFuelMutation } from "@/hooks/queries/use-fuel"
 import { useVehiclesInfiniteQuery } from "@/hooks/queries/use-vehicles"
 import { InfiniteScrollSelect } from "@/components/ui/infinite-scroll-select"
@@ -37,7 +36,6 @@ export default function FuelExpensePage() {
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
   const [editingRecharge, setEditingRecharge] = React.useState<{ _id: string; amount: number; note?: string } | null>(null)
   const [editingFuel, setEditingFuel] = React.useState<FuelRecord | null>(null)
-  const [initialValues, setInitialValues] = React.useState<Partial<FuelFormValues> | undefined>()
   const [searchTerm, setSearchTerm] = React.useState("")
   const debouncedSearch = useDebounce(searchTerm, 400)
   const [selectedVehicleNo, setSelectedVehicleNo] = React.useState<string | undefined>()
@@ -74,11 +72,6 @@ export default function FuelExpensePage() {
 
   const expenses = data?.data || []
   const total = data?.pagination?.total || 0
-
-  const handleOpenChange = (open: boolean) => {
-    setIsAddOpen(open)
-    if (!open) setInitialValues(undefined)
-  }
 
   return (
     <div className="flex flex-col gap-8 p-2 md:p-8 bg-slate-50/30 min-h-screen">
@@ -252,7 +245,7 @@ export default function FuelExpensePage() {
         editId={editingFuel?._id}
         initialValues={editingFuel ? {
           fillingDate: editingFuel.fillingDate ? new Date(editingFuel.fillingDate).toISOString().substring(0, 10) : "",
-          vehicleId: typeof editingFuel.vehicleId === 'object' && editingFuel.vehicleId !== null ? (editingFuel.vehicleId as any)._id : String(editingFuel.vehicleId || ""),
+          vehicleId: typeof editingFuel.vehicleId === 'object' && editingFuel.vehicleId !== null ? editingFuel.vehicleId._id : String(editingFuel.vehicleId || ""),
           odometer: String(editingFuel.odometer),
           fuelType: editingFuel.fuelType || "Diesel",
           ratePerLtr: String(editingFuel.ratePerLtr),

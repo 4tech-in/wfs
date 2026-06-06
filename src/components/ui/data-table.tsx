@@ -85,7 +85,6 @@ export function DataTable<TData, TValue>({
   })
 
   const pagination = externalPagination ?? localPagination
-  const onPaginationChange = externalOnPaginationChange ?? setLocalPagination
 
   const rowSelection = externalRowSelection ?? internalRowSelection
   const onRowSelectionChange = React.useCallback((updaterOrValue: Updater<Record<string, boolean>>) => {

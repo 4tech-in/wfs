@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fuelService } from '@/services/fuel-service';
-import { FuelCardStats, FuelQueryParams, FuelExpensesResponse, CreateFuelDto } from '@/types/fuel';
+import { FuelCardStats, FuelQueryParams, FuelExpensesResponse, CreateFuelDto, FuelCardsResponse } from '@/types/fuel';
 
 export const FUEL_QUERY_KEYS = {
   all: ['fuel'] as const,
   list: (params?: FuelQueryParams) => [...FUEL_QUERY_KEYS.all, 'list', params] as const,
   stats: () => [...FUEL_QUERY_KEYS.all, 'stats'] as const,
-  cards: (params?: any) => [...FUEL_QUERY_KEYS.all, 'cards', params] as const,
+  cards: (params?: Record<string, unknown>) => [...FUEL_QUERY_KEYS.all, 'cards', params] as const,
 };
 
 /**
@@ -83,11 +83,8 @@ export function useAddCardBalanceMutation() {
   });
 }
 
-/**
- * Hook to fetch all fuel cards balance entries
- */
-export function useFuelCardsQuery(params?: any) {
-  return useQuery({
+export function useFuelCardsQuery(params?: Record<string, unknown>) {
+  return useQuery<FuelCardsResponse>({
     queryKey: FUEL_QUERY_KEYS.cards(params),
     queryFn: () => fuelService.getFuelCards(params),
   });

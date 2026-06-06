@@ -52,6 +52,19 @@ export interface CreateFuelDto {
   fuelType: string;
   ratePerLtr: number;
   totalAmount: number;
+  totalFuel?: number;
   fillingDate: string;
   images?: File[];
+}
+
+export interface FuelCardEntry {
+  _id: string;
+  amount: number;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FuelCardsResponse {
+  data: FuelCardEntry[];
 }

@@ -1,5 +1,5 @@
 import apiClient from '@/lib/api-client';
-import { FuelCardStats, FuelExpensesResponse, FuelQueryParams, CreateFuelDto } from '@/types/fuel';
+import { FuelCardStats, FuelExpensesResponse, FuelQueryParams, CreateFuelDto, FuelCardsResponse } from '@/types/fuel';
 import { toast } from 'sonner';
 
 /**
@@ -121,9 +121,9 @@ export const fuelService = {
   /**
    * Get all fuel card balance additions (transactions)
    */
-  getFuelCards: async (params?: any): Promise<any> => {
+  getFuelCards: async (params?: Record<string, unknown>): Promise<FuelCardsResponse> => {
     try {
-      return await apiClient.get('/fuel-card', { params });
+      return await apiClient.get<void, FuelCardsResponse>('/fuel-card', { params });
     } catch (error: unknown) {
       toast.error('Failed to fetch recharge history');
       throw error;

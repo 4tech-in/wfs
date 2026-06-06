@@ -191,26 +191,42 @@ export default function LeaveManagement() {
                             </DropdownMenuItem>
 
                             <DropdownMenuItem
-                                onSelect={async () => {
-                                    if (shareUrl) {
-                                        try {
-                                            await navigator.clipboard.writeText(shareUrl)
-                                            toast.success("Link copied to clipboard!")
-                                        } catch {
+                                onSelect={() => {
+                                    setTimeout(async () => {
+                                        if (shareUrl) {
+                                            if (navigator.clipboard && window.isSecureContext) {
+                                                try {
+                                                    await navigator.clipboard.writeText(shareUrl)
+                                                    toast.success("Link copied to clipboard!")
+                                                    return
+                                                } catch (err) {
+                                                    console.error("Clipboard API failed, falling back", err)
+                                                }
+                                            }
+                                            
                                             // Fallback for older browsers or non-secure contexts
                                             const textArea = document.createElement("textarea")
                                             textArea.value = shareUrl
+                                            textArea.style.position = "fixed"
+                                            textArea.style.left = "-999999px"
+                                            textArea.style.top = "-999999px"
                                             document.body.appendChild(textArea)
+                                            textArea.focus()
                                             textArea.select()
                                             try {
-                                                document.execCommand('copy')
-                                                toast.success("Link copied to clipboard!")
-                                            } catch {
+                                                const successful = document.execCommand('copy')
+                                                if (successful) {
+                                                    toast.success("Link copied to clipboard!")
+                                                } else {
+                                                    toast.error("Failed to copy link")
+                                                }
+                                            } catch (err) {
+                                                console.error("Fallback copy failed", err)
                                                 toast.error("Failed to copy link")
                                             }
                                             document.body.removeChild(textArea)
                                         }
-                                    }
+                                    }, 100)
                                 }}
                                 className="flex items-center gap-3 px-2 py-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border-t border-slate-50 mt-1 outline-none"
                             >

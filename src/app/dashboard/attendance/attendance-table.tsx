@@ -40,6 +40,7 @@ interface AttendanceTableProps {
   selectedDate?: string
   onMarkManual?: (initialData: ManualAttendanceInitialData) => void
   onDelete?: (id: string) => void
+  showActions?: boolean
 }
 
 export function AttendanceTable({ 
@@ -51,7 +52,8 @@ export function AttendanceTable({
   hideSearch = false,
   selectedDate = format(new Date(), "yyyy-MM-dd"),
   onMarkManual,
-  onDelete
+  onDelete,
+  showActions = true
 }: AttendanceTableProps) {
   const markAttendanceMutation = useMarkAttendanceMutation()
 
@@ -288,7 +290,10 @@ export function AttendanceTable({
       header: "Status",
       cell: ({ row }) => getStatusBadge(row.original.status),
     },
-    {
+  ]
+
+  if (showActions) {
+    columns.push({
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
@@ -383,8 +388,8 @@ export function AttendanceTable({
           </div>
         )
       }
-    }
-  ]
+    })
+  }
 
   return (
     <DataTable

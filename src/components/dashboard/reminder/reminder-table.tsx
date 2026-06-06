@@ -19,6 +19,16 @@ import { useDeleteReminderMutation, useUpdateReminderMutation } from "@/hooks/qu
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface ReminderTableProps {
   data: Reminder[]
@@ -29,32 +39,62 @@ export function ReminderTable({ data, isLoading }: ReminderTableProps) {
   const deleteMutation = useDeleteReminderMutation()
   const updateMutation = useUpdateReminderMutation()
 
+  const [confirmingReminder, setConfirmingReminder] = React.useState<Reminder | null>(null)
+  const [nextOccurrenceInfo, setNextOccurrenceInfo] = React.useState<{ title: string; nextOccurrence: string } | null>(null)
+
+  const handleMarkDoneClick = (reminder: Reminder) => {
+    setConfirmingReminder(reminder)
+  }
+
+  const handleConfirmMarkDone = async () => {
+    if (!confirmingReminder) return
+    const reminder = confirmingReminder
+    setConfirmingReminder(null)
+    try {
+      const result = await updateMutation.mutateAsync({ id: reminder._id, data: { action: 'done' } })
+      if (result?.data?.nextOccurrence) {
+        setNextOccurrenceInfo({
+          title: result.data.title,
+          nextOccurrence: result.data.nextOccurrence
+        })
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   const columns: ColumnDef<Reminder>[] = [
     {
       id: "done",
       header: "Mark",
       cell: ({ row }) => {
         const reminder = row.original
+        const isCompletedOnce = !reminder.enabled && reminder.frequency === "once"
         
+        if (!reminder.enabled) {
+          return (
+            <Button
+              disabled
+              size="sm"
+              variant="outline"
+              className="bg-emerald-50/30 text-emerald-600 border-emerald-100/50 gap-1.5 h-8 px-2.5 rounded-xl font-bold text-xs"
+            >
+              <CheckCircle className="h-4 w-4 fill-emerald-500 text-white" />
+              {isCompletedOnce ? "Completed" : "Inactive"}
+            </Button>
+          )
+        }
+
         return (
           <Button
-            size="icon"
-            variant="ghost"
-            className={cn(
-              "h-8 w-8 rounded-full transition-all",
-              reminder.enabled 
-                ? "text-slate-300 hover:text-emerald-600 hover:bg-emerald-50" 
-                : "text-emerald-500 bg-emerald-50/50"
-            )}
-            onClick={() => {
-              if (reminder.enabled) {
-                updateMutation.mutate({ id: reminder._id, data: { action: 'done' } })
-              }
-            }}
-            disabled={!reminder.enabled || updateMutation.isPending}
-            title={reminder.enabled ? "Mark as Done" : "Completed"}
+            size="sm"
+            variant="outline"
+            className="border-slate-200 text-slate-700 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200/50 gap-1.5 h-8 px-2.5 rounded-xl font-bold text-xs transition-all active:scale-95"
+            onClick={() => handleMarkDoneClick(reminder)}
+            disabled={updateMutation.isPending}
           >
-            <CheckCircle className={cn("h-5 w-5", !reminder.enabled && "fill-emerald-500 text-white")} />
+            <CheckCircle className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
+            Mark Done
           </Button>
         )
       }
@@ -159,9 +199,7 @@ export function ReminderTable({ data, isLoading }: ReminderTableProps) {
               {reminder.enabled && (
                 <DropdownMenuItem
                   className="px-3 py-2 cursor-pointer font-bold focus:bg-emerald-50 focus:text-emerald-600 rounded-xl"
-                  onClick={() => {
-                    updateMutation.mutate({ id: reminder._id, data: { action: 'done' } })
-                  }}
+                  onClick={() => handleMarkDoneClick(reminder)}
                 >
                   <CheckCircle className="mr-2 h-4 w-4 text-emerald-500" />
                   Mark as Done
@@ -186,11 +224,54 @@ export function ReminderTable({ data, isLoading }: ReminderTableProps) {
   ]
 
   return (
-    <DataTable 
-      columns={columns} 
-      data={data} 
-      isLoading={isLoading}
-      searchKey="title"
-    />
+    <>
+      <DataTable 
+        columns={columns} 
+        data={data} 
+        isLoading={isLoading}
+        searchKey="title"
+      />
+
+      <AlertDialog open={!!confirmingReminder} onOpenChange={(open) => !open && setConfirmingReminder(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark the reminder "{confirmingReminder?.title}" as done?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmMarkDone} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!nextOccurrenceInfo} onOpenChange={(open) => !open && setNextOccurrenceInfo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reminder Marked as Done</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>The reminder <strong>"{nextOccurrenceInfo?.title}"</strong> has been successfully processed.</p>
+              {nextOccurrenceInfo?.nextOccurrence && (
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-1 mt-2">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Next Occurrence</span>
+                  <span className="font-bold text-slate-700">
+                    {format(new Date(nextOccurrenceInfo.nextOccurrence), "PPP")}
+                  </span>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setNextOccurrenceInfo(null)} className="bg-slate-900 hover:bg-slate-800 text-white font-bold">
+              Okay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

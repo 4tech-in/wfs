@@ -826,6 +826,7 @@ export default function DashboardPage() {
             onPaginationChange={onPaginationChange}
             selectedDate={today}
             onDelete={(id) => setDeletingUserIds([id])}
+            showActions={false}
           />
 
           <EditEmployeeDialog

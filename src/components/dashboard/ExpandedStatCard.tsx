@@ -194,6 +194,7 @@ export function ExpandedStatCard({
                onPaginationChange={onPaginationChange}
                selectedDate={dateStr}
                hideSearch={true}
+               showActions={false}
              />
            )}
         </motion.div>

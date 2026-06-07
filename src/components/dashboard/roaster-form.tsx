@@ -526,10 +526,10 @@ export function RoasterForm({ onSubmit, isLoading, initialValues, initialEmploye
                 onClick={() => field.onChange(!field.value)}
               >
                 <FormLabel className="text-sm font-semibold text-slate-900 cursor-pointer">
-                  24 Hours Shift
+                  24/12 Hours Shift
                 </FormLabel>
                 <p className="text-xs text-slate-500 font-medium">
-                  Apply a continuous 24-hour shift policy to the selected employees.
+                  Apply a continuous 24/12 hours shift policy to the selected employees.
                 </p>
               </div>
             </FormItem>

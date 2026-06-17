@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import { 
   Clock, 
@@ -41,6 +42,7 @@ interface AttendanceTableProps {
   onMarkManual?: (initialData: ManualAttendanceInitialData) => void
   onDelete?: (id: string) => void
   showActions?: boolean
+  isLeaveView?: boolean
 }
 
 export function AttendanceTable({ 
@@ -53,7 +55,8 @@ export function AttendanceTable({
   selectedDate = format(new Date(), "yyyy-MM-dd"),
   onMarkManual,
   onDelete,
-  showActions = true
+  showActions = true,
+  isLeaveView = false
 }: AttendanceTableProps) {
   const markAttendanceMutation = useMarkAttendanceMutation()
 
@@ -140,60 +143,89 @@ export function AttendanceTable({
     }
   }
 
-  const columns: ColumnDef<UserAttendanceItem | Attendance>[] = [
-    {
-      accessorKey: "userId",
-      header: "Employee",
-      cell: ({ row }) => {
-        const item = row.original;
-        const user = 'user' in item ? item.user : item.userId;
-        return (
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100/50">
-              <User className="h-4 w-4" />
+  const columns = React.useMemo<ColumnDef<UserAttendanceItem | Attendance>[]>(() => {
+    const cols: ColumnDef<UserAttendanceItem | Attendance>[] = [
+      {
+        accessorKey: "userId",
+        header: "Employee",
+        cell: ({ row }) => {
+          const item = row.original;
+          const user = 'user' in item ? item.user : item.userId;
+          return (
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100/50">
+                <User className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-slate-900 line-clamp-1">
+                  {user?.otherName || user?.name || "Unknown"}
+                </span>
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">
+                  {user?.employeeId}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-slate-900 line-clamp-1">
-                {user?.otherName || user?.name || "Unknown"}
-              </span>
-              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">
-                {user?.employeeId}
-              </span>
+          )
+        },
+      },
+      {
+        accessorKey: "date",
+        header: "Date",
+        cell: ({ row }) => {
+          const item = row.original;
+          const attendance = 'attendance' in item ? item.attendance : item;
+          const dateStr = attendance?.date || selectedDate;
+          return (
+            <div className="flex items-center gap-2 text-slate-600 font-bold whitespace-nowrap">
+              <Calendar className="h-3.5 w-3.5 text-slate-400" />
+              <span>{formatDateLabel(dateStr)}</span>
             </div>
-          </div>
-        )
+          )
+        },
       },
-    },
-    {
-      accessorKey: "date",
-      header: "Date",
-      cell: ({ row }) => {
-        const item = row.original;
-        const attendance = 'attendance' in item ? item.attendance : item;
-        const dateStr = attendance?.date || selectedDate;
-        return (
-          <div className="flex items-center gap-2 text-slate-600 font-bold whitespace-nowrap">
-            <Calendar className="h-3.5 w-3.5 text-slate-400" />
-            <span>{formatDateLabel(dateStr)}</span>
-          </div>
-        )
+      {
+        accessorKey: "designation",
+        header: "Designation",
+        cell: ({ row }) => {
+          const item = row.original;
+          const user = 'user' in item ? item.user : item.userId;
+          return (
+            <div className="flex items-center gap-2 text-slate-600 font-bold whitespace-nowrap">
+              <Briefcase className="h-3.5 w-3.5 text-slate-400" />
+              <span>{user?.designation || "N/A"}</span>
+            </div>
+          )
+        },
       },
-    },
-    {
-      accessorKey: "designation",
-      header: "Designation",
-      cell: ({ row }) => {
-        const item = row.original;
-        const user = 'user' in item ? item.user : item.userId;
-        return (
-          <div className="flex items-center gap-2 text-slate-600 font-bold whitespace-nowrap">
-            <Briefcase className="h-3.5 w-3.5 text-slate-400" />
-            <span>{user?.designation || "N/A"}</span>
-          </div>
-        )
-      },
-    },
-    {
+    ];
+
+    if (isLeaveView) {
+      cols.push({
+        accessorKey: "department",
+        header: "Department",
+        cell: ({ row }) => {
+          const item = row.original;
+          const user = 'user' in item ? item.user : item.userId;
+          
+          interface UserWithDepartment {
+            department?: {
+              name: string;
+            };
+            departmentName?: string;
+          }
+          
+          const userWithDept = user as unknown as UserWithDepartment;
+          return (
+            <div className="flex items-center gap-2 text-slate-600 font-bold whitespace-nowrap">
+              <Building2 className="h-3.5 w-3.5 text-slate-400" />
+              <span>{userWithDept?.department?.name || userWithDept?.departmentName || "N/A"}</span>
+            </div>
+          )
+        },
+      });
+    }
+
+    cols.push({
       accessorKey: "company",
       header: "Company",
       cell: ({ row }) => {
@@ -206,91 +238,99 @@ export function AttendanceTable({
           </div>
         )
       },
-    },
-    {
-      accessorKey: "punchIn",
-      header: "Punch In",
-      cell: ({ row }) => {
-        const item = row.original;
-        const attendance = 'attendance' in item ? item.attendance : item;
-        const time = formatTime(attendance?.punchIn);
-        const date = attendance?.punchIn?.includes('T') ? formatDateLabel(attendance.punchIn) : null;
-        
-        return (
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 text-slate-600 font-bold">
-              <Clock className="h-3.5 w-3.5 text-emerald-500" />
-              <span>{time}</span>
-            </div>
-            {date && (
-              <span className="text-[9px] text-slate-400 font-medium ml-5.5">
-                {date}
-              </span>
-            )}
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: "punchOut",
-      header: "Punch Out",
-      cell: ({ row }) => {
-        const item = row.original;
-        const attendance = 'attendance' in item ? item.attendance : item;
-        const time = formatTime(attendance?.punchOut);
-        const date = attendance?.punchOut?.includes('T') ? formatDateLabel(attendance.punchOut) : null;
+    });
 
-        return (
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 text-slate-600 font-bold">
-              <Clock className="h-3.5 w-3.5 text-rose-500" />
-              <span>{time}</span>
-            </div>
-            {date && (
-              <span className="text-[9px] text-slate-400 font-medium ml-5.5">
-                {date}
+    if (!isLeaveView) {
+      cols.push(
+        {
+          accessorKey: "punchIn",
+          header: "Punch In",
+          cell: ({ row }) => {
+            const item = row.original;
+            const attendance = 'attendance' in item ? item.attendance : item;
+            const time = formatTime(attendance?.punchIn);
+            const date = attendance?.punchIn?.includes('T') ? formatDateLabel(attendance.punchIn) : null;
+            
+            return (
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 text-slate-600 font-bold">
+                  <Clock className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>{time}</span>
+                </div>
+                {date && (
+                  <span className="text-[9px] text-slate-400 font-medium ml-5.5">
+                    {date}
+                  </span>
+                )}
+              </div>
+            )
+          },
+        },
+        {
+          accessorKey: "punchOut",
+          header: "Punch Out",
+          cell: ({ row }) => {
+            const item = row.original;
+            const attendance = 'attendance' in item ? item.attendance : item;
+            const time = formatTime(attendance?.punchOut);
+            const date = attendance?.punchOut?.includes('T') ? formatDateLabel(attendance.punchOut) : null;
+
+            return (
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 text-slate-600 font-bold">
+                  <Clock className="h-3.5 w-3.5 text-rose-500" />
+                  <span>{time}</span>
+                </div>
+                {date && (
+                  <span className="text-[9px] text-slate-400 font-medium ml-5.5">
+                    {date}
+                  </span>
+                )}
+              </div>
+            )
+          },
+        },
+        {
+          accessorKey: "totalWorkedMinutes",
+          header: "Duration",
+          cell: ({ row }) => {
+            const item = row.original;
+            const attendance = 'attendance' in item ? item.attendance : item;
+            const mins = Math.floor(attendance?.totalWorkedMinutes || 0)
+            const hours = Math.floor(mins / 60)
+            const remainingMins = mins % 60
+            return (
+              <span className="font-bold text-slate-700">
+                {hours}h {remainingMins}m
               </span>
-            )}
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: "totalWorkedMinutes",
-      header: "Duration",
-      cell: ({ row }) => {
-        const item = row.original;
-        const attendance = 'attendance' in item ? item.attendance : item;
-        const mins = Math.floor(attendance?.totalWorkedMinutes || 0)
-        const hours = Math.floor(mins / 60)
-        const remainingMins = mins % 60
-        return (
-          <span className="font-bold text-slate-700">
-            {hours}h {remainingMins}m
-          </span>
-        )
-      },
-    },
-    {
-      accessorKey: "overtimeHours",
-      header: "Overtime",
-      cell: ({ row }) => {
-        const item = row.original;
-        const attendance = 'attendance' in item ? item.attendance : item;
-        return (
-          <div className="flex items-center gap-1.5 font-bold text-emerald-600">
-            <TrendingUp className="h-3.5 w-3.5" />
-            <span>{attendance?.overtimeHours || 0}h</span>
-          </div>
-        )
-      },
-    },
-    {
+            )
+          },
+        },
+        {
+          accessorKey: "overtimeHours",
+          header: "Overtime",
+          cell: ({ row }) => {
+            const item = row.original;
+            const attendance = 'attendance' in item ? item.attendance : item;
+            return (
+              <div className="flex items-center gap-1.5 font-bold text-emerald-600">
+                <TrendingUp className="h-3.5 w-3.5" />
+                <span>{attendance?.overtimeHours || 0}h</span>
+              </div>
+            )
+          },
+        }
+      );
+    }
+
+    cols.push({
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => getStatusBadge(row.original.status),
-    },
-  ]
+    });
+
+    return cols;
+  }, [selectedDate, isLeaveView]);
 
   if (showActions) {
     columns.push({

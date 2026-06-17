@@ -24,7 +24,7 @@ export default function NotFound() {
       </div>
 
       <div className="mt-16 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-        WORKFORCE SYNC.
+        GOEL ENTERPRISES.
       </div>
     </div>
   )

@@ -82,10 +82,10 @@ export function GlobalSearch() {
 
   const results = React.useMemo(() => {
     if (!query) return SEARCH_DATA.filter(item => item.category === "Pages")
-    
+
     const lowerQuery = query.toLowerCase()
-    return SEARCH_DATA.filter(item => 
-      item.title.toLowerCase().includes(lowerQuery) || 
+    return SEARCH_DATA.filter(item =>
+      item.title.toLowerCase().includes(lowerQuery) ||
       item.description.toLowerCase().includes(lowerQuery) ||
       item.category.toLowerCase().includes(lowerQuery)
     )
@@ -156,15 +156,15 @@ export function GlobalSearch() {
             />
           </div>
           <div className="flex items-center gap-1">
-             <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-slate-50 px-1.5 font-mono text-[10px] font-medium text-slate-400 opacity-100 sm:flex">
+            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-slate-50 px-1.5 font-mono text-[10px] font-medium text-slate-400 opacity-100 sm:flex">
               <span className="text-xs">TAB</span>
             </kbd>
-             <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-slate-50 px-1.5 font-mono text-[10px] font-medium text-slate-400 opacity-100 sm:flex">
+            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-slate-50 px-1.5 font-mono text-[10px] font-medium text-slate-400 opacity-100 sm:flex">
               <span className="text-xs">ESC</span>
             </kbd>
           </div>
         </div>
-        
+
         <div className="max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
           {(() => {
             let absoluteIndex = 0;
@@ -193,14 +193,14 @@ export function GlobalSearch() {
                           "h-9 w-9 rounded-lg flex items-center justify-center transition-colors shadow-sm",
                           isActive ? (
                             category === "Pages" ? "bg-emerald-600 text-white" :
-                            category === "Employees" ? "bg-blue-600 text-white" :
-                            category === "Recruitment" ? "bg-purple-600 text-white" :
-                            "bg-indigo-600 text-white"
+                              category === "Employees" ? "bg-blue-600 text-white" :
+                                category === "Recruitment" ? "bg-purple-600 text-white" :
+                                  "bg-indigo-600 text-white"
                           ) : (
                             category === "Pages" ? "bg-emerald-50 text-emerald-600" :
-                            category === "Employees" ? "bg-blue-50 text-blue-600" :
-                            category === "Recruitment" ? "bg-purple-50 text-purple-600" :
-                            "bg-indigo-50 text-indigo-600"
+                              category === "Employees" ? "bg-blue-50 text-blue-600" :
+                                category === "Recruitment" ? "bg-purple-50 text-purple-600" :
+                                  "bg-indigo-50 text-indigo-600"
                           )
                         )}>
                           <item.icon className={cn("h-5 w-5", isActive && "animate-in zoom-in-75 duration-300")} />
@@ -210,7 +210,7 @@ export function GlobalSearch() {
                           <div className="text-[12px] text-slate-400 truncate">{item.description}</div>
                         </div>
                         <div className={cn("transition-opacity", isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100")}>
-                           <kbd className="rounded bg-white border shadow-sm px-1.5 py-0.5 font-mono text-[10px] text-slate-500">↵</kbd>
+                          <kbd className="rounded bg-white border shadow-sm px-1.5 py-0.5 font-mono text-[10px] text-slate-500">↵</kbd>
                         </div>
                       </button>
                     );
@@ -245,8 +245,8 @@ export function GlobalSearch() {
             </div>
           </div>
           <div className="text-[10px] font-semibold text-[#3CC3A3] flex items-center gap-1">
-             <SearchIcon className="h-3 w-3" />
-             Workforce Sync Search
+            <SearchIcon className="h-3 w-3" />
+            GOEL ENTERPRISES Search
           </div>
         </div>
       </DialogContent>

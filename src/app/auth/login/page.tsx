@@ -59,12 +59,12 @@ export default function LoginPage() {
                 email: data.email,
                 password: data.password
             })
-            
+
             console.log("Login successful, redirecting to dashboard...")
             // Small delay to ensure cookies are processed by the browser before navigation
             // though router.push should handle it, this adds extra safety in some environments
             router.push("/dashboard")
-            
+
             // Allow navigation to start before triggering a refresh if needed
             // router.refresh() is removed here as it can sometimes interrupt push()
         } catch (err) {
@@ -103,7 +103,7 @@ export default function LoginPage() {
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
                                     <span className="text-2xl font-black tracking-tight text-[#1a1a1a]">
-                                        Workforce Sync.
+                                        GOEL ENTERPRISES.
                                     </span>
                                 </div>
                             </div>
@@ -231,10 +231,10 @@ export default function LoginPage() {
                         {/* Bottom Glassmorphism Card */}
                         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[85%] bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-2xl text-center shadow-2xl">
                             <p className="text-[10px] text-white/80 leading-relaxed font-medium">
-                                &copy; {new Date().getFullYear()} Workforce Sync. All rights reserved.
+                                &copy; {new Date().getFullYear()} GOEL ENTERPRISES. All rights reserved.
                                 <br />
                                 Unauthorized use or reproduction of any content on this platform is prohibited.
-                                
+
                             </p>
                         </div>
                     </div>

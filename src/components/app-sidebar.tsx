@@ -44,17 +44,17 @@ const items = [
   { title: "Asset Tracking", url: "/dashboard/asset-tracking", icon: Search },
   { title: "Reminders", url: "/dashboard/reminders", icon: Bell },
   { title: "Company Master", url: "/dashboard/company-master", icon: Users },
-  {title: "Fuel Expenses", url: "/dashboard/fuel-expenses", icon: Fuel},
-  {title: "Bills", url: "/dashboard/Bill", icon: Banknote},
+  { title: "Fuel Expenses", url: "/dashboard/fuel-expenses", icon: Fuel },
+  { title: "Bills", url: "/dashboard/Bill", icon: Banknote },
 ]
 
 function Logo({ collapsed }: { collapsed?: boolean }) {
   return (
     <div className={cn("flex items-center gap-3", collapsed ? "justify-center" : "px-4")}>
       {collapsed ? (
-        <span className="text-sm font-bold">WS.</span>
+        <span className="text-sm font-bold">GE.</span>
       ) : (
-        <span className="text-xl text-center font-bold tracking-tight text-[#1e293b]">Workforce Sync.</span>
+        <span className="text-xl text-center font-bold tracking-tight text-[#1e293b]">GOEL ENTERPRISES.</span>
       )}
     </div>
   )
@@ -64,7 +64,7 @@ export function AppSidebar() {
   const { state } = useSidebar()
   const pathname = usePathname()
   const isCollapsed = state === "collapsed"
-  
+
   // Initialize state directly from storage to avoid flicker on client-side
   const [userRole, setUserRole] = React.useState<string | null>(null)
 
@@ -79,7 +79,7 @@ export function AppSidebar() {
     return items.filter(item => {
       // List of items that should be hidden for "hr" role
       const restrictedForHR = ["Payroll Policies", "Company Master"];
-      
+
       if (restrictedForHR.includes(item.title)) {
         // If we don't have a role yet (SSR or initial client load), hide it to be safe
         if (!userRole) return false

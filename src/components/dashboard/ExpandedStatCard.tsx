@@ -195,6 +195,7 @@ export function ExpandedStatCard({
                selectedDate={dateStr}
                hideSearch={true}
                showActions={false}
+               isLeaveView={category === "on-leave"}
              />
            )}
         </motion.div>

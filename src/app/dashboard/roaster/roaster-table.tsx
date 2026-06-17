@@ -147,18 +147,7 @@ export function RoasterTable({ data, isLoading, pagination, onPaginationChange, 
         );
       },
     },
-    {
-      accessorKey: "createdAt",
-      header: "Created At",
-      cell: ({ row }) => {
-        const date = row.original.createdAt ? new Date(row.original.createdAt) : null
-        return (
-          <div className="text-slate-600 font-medium">
-            {date && !isNaN(date.getTime()) ? format(date, "dd MMM yyyy") : "—"}
-          </div>
-        )
-      },
-    },
+
     {
       id: "actions",
       header: "Actions",

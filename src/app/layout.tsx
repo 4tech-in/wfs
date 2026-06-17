@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Workforce Sync",
-  description: "Workforce Sync by FourTech",
+  title: "GOEL ENTERPRISES",
+  description: "GOEL ENTERPRISES by FourTech",
 };
 
 

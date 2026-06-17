@@ -77,9 +77,9 @@ export default function ApplyForLeavePage() {
     <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col items-center p-6 md:p-10">
       {/* Header */}
       <div className="w-full max-w-md md:max-w-xl flex items-center justify-between mb-6">
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="rounded-full bg-white shadow-sm hover:bg-slate-50 transition-colors h-10 w-10"
           onClick={() => router.back()}
         >
@@ -93,7 +93,7 @@ export default function ApplyForLeavePage() {
         <div className="bg-gradient-to-br from-[#2eb88a] to-[#1e8a66] p-6 md:p-8 text-white relative overflow-hidden">
           {/* Decorative elements */}
           <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-          
+
           <div className="relative z-10 flex items-center gap-5">
             <div className="h-14 w-14 md:h-16 md:w-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-lg shrink-0">
               <CalendarIcon className="h-7 w-7 md:h-8 md:w-8 text-white" />
@@ -118,10 +118,10 @@ export default function ApplyForLeavePage() {
                       Employee ID
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="e.g. EMP-001" 
-                        {...field} 
-                        className="rounded-xl border-slate-100 bg-slate-50/50 h-12 md:h-14 px-5 focus:border-[#2eb88a] focus:ring-[#2eb88a]/10 font-bold text-base transition-all" 
+                      <Input
+                        placeholder="e.g. EMP-001"
+                        {...field}
+                        className="rounded-xl border-slate-100 bg-slate-50/50 h-12 md:h-14 px-5 focus:border-[#2eb88a] focus:ring-[#2eb88a]/10 font-bold text-base transition-all"
                       />
                     </FormControl>
                     <FormMessage className="text-[10px] font-bold" />
@@ -225,10 +225,10 @@ export default function ApplyForLeavePage() {
                       Reason
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Why are you taking leave?" 
-                        {...field} 
-                        className="rounded-xl border-slate-100 bg-slate-50/50 h-12 md:h-14 px-5 focus:border-[#2eb88a] focus:ring-[#2eb88a]/10 font-bold text-base transition-all" 
+                      <Input
+                        placeholder="Why are you taking leave?"
+                        {...field}
+                        className="rounded-xl border-slate-100 bg-slate-50/50 h-12 md:h-14 px-5 focus:border-[#2eb88a] focus:ring-[#2eb88a]/10 font-bold text-base transition-all"
                       />
                     </FormControl>
                     <FormMessage className="text-[10px] font-bold" />
@@ -236,8 +236,8 @@ export default function ApplyForLeavePage() {
                 )}
               />
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isLoading || !!submittedData}
                 className={cn(
                   "w-full h-14 md:h-16 rounded-2xl font-black text-base text-white shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-2",
@@ -268,7 +268,7 @@ export default function ApplyForLeavePage() {
                     </p>
                   </div>
                   <div className="flex gap-3">
-                    <Button 
+                    <Button
                       type="button"
                       onClick={() => window.print()}
                       className="flex-1 bg-slate-900 hover:bg-slate-800 text-white h-12 rounded-xl font-bold flex items-center justify-center gap-2"
@@ -276,7 +276,7 @@ export default function ApplyForLeavePage() {
                       <FileText className="h-4 w-4" />
                       Print Form
                     </Button>
-                    <Button 
+                    <Button
                       type="button"
                       variant="outline"
                       onClick={() => {
@@ -302,7 +302,7 @@ export default function ApplyForLeavePage() {
             <div>
               <p className="text-[10px] font-black text-[#2eb88a] uppercase tracking-[0.3em] mb-1">Goyal Enterprises</p>
               <h1 className="text-4xl font-black italic tracking-tighter text-slate-900 uppercase">Leave Application Form</h1>
-              <p className="text-slate-500 font-bold mt-1 uppercase tracking-widest text-xs">Workforce Sync • Employee Management System</p>
+              <p className="text-slate-500 font-bold mt-1 uppercase tracking-widest text-xs">GOEL ENTERPRISES • Employee Management System</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Application Date</p>
@@ -356,7 +356,7 @@ export default function ApplyForLeavePage() {
 
           <div className="mt-20 pt-10 text-center border-t-2 border-slate-100">
             <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em]">
-              Form Generated via Workforce Sync Cloud Terminal • Internal Document ID: {Math.random().toString(36).substring(7).toUpperCase()}
+              Form Generated via GOEL ENTERPRISES Cloud Terminal • Internal Document ID: {Math.random().toString(36).substring(7).toUpperCase()}
             </p>
           </div>
         </div>
@@ -364,7 +364,7 @@ export default function ApplyForLeavePage() {
 
       <div className="pb-10 text-center shrink-0">
         <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">
-          Powered by Workforce Sync • v1.0
+          Powered by GOEL ENTERPRISES • v1.0
         </p>
       </div>
     </div>

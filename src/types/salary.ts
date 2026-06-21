@@ -17,12 +17,14 @@ export interface SalaryListItem {
     name: string;
     employeeId: string;
     email?: string;
+    otherName?: string;
   };
   user?: {
     _id: string;
     name: string;
     employeeId: string;
     email?: string;
+    otherName?: string;
   };
   hourly: boolean;
   monthly: boolean;

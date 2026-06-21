@@ -80,7 +80,7 @@ export default function EmployeeSalaryPage() {
         if (!emp) return
 
         setEditingSalary(emp._id)
-        setSelectedEmployee({ id: emp._id, name: emp.name })
+        setSelectedEmployee({ id: emp._id, name: emp.otherName || emp.name })
         
         let type: SalaryType = "monthly"
         let rateValue = ""
@@ -218,13 +218,13 @@ export default function EmployeeSalaryPage() {
                                 <InfiniteScrollSelect
                                     key={selectedCompany?.id} // Force re-render when company changes
                                     value={selectedEmployee?.id}
-                                    onValueChange={(val, item: EmployeeDropdownItem) => setSelectedEmployee({ id: val, name: item.name })}
+                                    onValueChange={(val, item: EmployeeDropdownItem) => setSelectedEmployee({ id: val, name: item.otherName || item.name })}
                                     items={allEmployees}
                                     loadMore={fetchNextPage}
                                     hasNextPage={!!hasNextPage}
                                     isFetchingNextPage={isFetchingNextPage}
                                     isLoading={isEmployeesLoading}
-                                    getLabel={(item: EmployeeDropdownItem) => `[${item.employeeId}] ${item.name}`}
+                                    getLabel={(item: EmployeeDropdownItem) => `[${item.employeeId}] ${item.otherName || item.name}`}
                                     getValue={(item: EmployeeDropdownItem) => item._id}
                                     placeholder={selectedCompany ? "Search in company..." : "Search by name or ID..."}
                                     onSearchChange={setSearchTerm}

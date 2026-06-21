@@ -329,107 +329,107 @@ export function AttendanceTable({
       cell: ({ row }) => getStatusBadge(row.original.status),
     });
 
-    return cols;
-  }, [selectedDate, isLeaveView]);
+    if (showActions) {
+      cols.push({
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => {
+          const item = row.original;
+          const user = 'user' in item ? item.user : item.userId;
+          const attendance = 'attendance' in item ? item.attendance : item;
+          const recordDate = attendance?.date || selectedDate;
 
-  if (showActions) {
-    columns.push({
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => {
-        const item = row.original;
-        const user = 'user' in item ? item.user : item.userId;
-        const attendance = 'attendance' in item ? item.attendance : item;
-        const recordDate = attendance?.date || selectedDate;
+          const handleAction = (status: 'Present' | 'Absent') => {
+            if (!user?._id) return;
+            
+            const punchIn = attendance?.punchIn;
+            const punchOut = attendance?.punchOut;
 
-        const handleAction = (status: 'Present' | 'Absent') => {
-          if (!user?._id) return;
-          
-          const punchIn = attendance?.punchIn;
-          const punchOut = attendance?.punchOut;
+            // Special case for Absent: do not send punches
+            if (status === 'Absent') {
+              markAttendanceMutation.mutate({
+                userIds: [user._id],
+                date: recordDate,
+                status: 'Absent',
+                punchIn: null,
+                punchOut: null
+              });
+              return;
+            }
 
-          // Special case for Absent: do not send punches
-          if (status === 'Absent') {
-            markAttendanceMutation.mutate({
-              userIds: [user._id],
-              date: recordDate,
-              status: 'Absent',
-              punchIn: null,
-              punchOut: null
-            });
-            return;
-          }
+            // If punchIn is available but punchOut is not, ask for punch out details via manual dialog
+            if (punchIn && !punchOut && onMarkManual) {
+              onMarkManual({
+                employeeId: user._id,
+                companyId: user.company?._id,
+                date: new Date(recordDate),
+                status: status,
+                punchIn: punchIn,
+                punchOut: punchOut
+              });
+              return;
+            }
 
-          // If punchIn is available but punchOut is not, ask for punch out details via manual dialog
-          if (punchIn && !punchOut && onMarkManual) {
-            onMarkManual({
-              employeeId: user._id,
-              companyId: user.company?._id,
-              date: new Date(recordDate),
-              status: status,
-              punchIn: punchIn,
-              punchOut: punchOut
-            });
-            return;
-          }
+            if (punchIn || punchOut) {
+              markAttendanceMutation.mutate({
+                userIds: [user._id],
+                date: recordDate,
+                status: status,
+                punchIn,
+                punchOut
+              });
+            } else {
+              onMarkManual?.({
+                employeeId: user._id,
+                companyId: user.company?._id,
+                date: new Date(recordDate),
+                status: status
+              });
+            }
+          };
 
-          if (punchIn || punchOut) {
-            markAttendanceMutation.mutate({
-              userIds: [user._id],
-              date: recordDate,
-              status: status,
-              punchIn,
-              punchOut
-            });
-          } else {
-            onMarkManual?.({
-              employeeId: user._id,
-              companyId: user.company?._id,
-              date: new Date(recordDate),
-              status: status
-            });
-          }
-        };
-
-        return (
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-xl">
-                <DropdownMenuItem 
-                  className="gap-2 font-bold text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 rounded-lg cursor-pointer"
-                  onClick={() => handleAction('Present')}
-                >
-                  <Check className="h-4 w-4" />
-                  Mark Present
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="gap-2 font-bold text-rose-600 focus:text-rose-700 focus:bg-rose-50 rounded-lg cursor-pointer"
-                  onClick={() => handleAction('Absent')}
-                >
-                  <X className="h-4 w-4" />
-                  Mark Absent
-                </DropdownMenuItem>
-                {onDelete && user?._id && (
+          return (
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-xl">
                   <DropdownMenuItem 
-                    className="gap-2 font-bold text-destructive focus:text-destructive focus:bg-destructive/5 rounded-lg cursor-pointer"
-                    onClick={() => onDelete(user._id)}
+                    className="gap-2 font-bold text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 rounded-lg cursor-pointer"
+                    onClick={() => handleAction('Present')}
                   >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Employee
+                    <Check className="h-4 w-4" />
+                    Mark Present
                   </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )
-      }
-    })
-  }
+                  <DropdownMenuItem 
+                    className="gap-2 font-bold text-rose-600 focus:text-rose-700 focus:bg-rose-50 rounded-lg cursor-pointer"
+                    onClick={() => handleAction('Absent')}
+                  >
+                    <X className="h-4 w-4" />
+                    Mark Absent
+                  </DropdownMenuItem>
+                  {onDelete && user?._id && (
+                    <DropdownMenuItem 
+                      className="gap-2 font-bold text-destructive focus:text-destructive focus:bg-destructive/5 rounded-lg cursor-pointer"
+                      onClick={() => onDelete(user._id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete Employee
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )
+        }
+      })
+    }
+
+    return cols;
+  }, [selectedDate, isLeaveView, showActions, onMarkManual, onDelete, markAttendanceMutation]);
 
   return (
     <DataTable

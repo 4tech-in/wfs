@@ -69,8 +69,6 @@ const STATUS_OPTIONS: { label: string; value: ManualAttendanceStatus }[] = [
   { label: "Holiday", value: "Holiday" },
 ]
 
-const HOURS_12 = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"))
-const MINUTES = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"))
 const PERIODS = ["AM", "PM"]
 
 interface MarkManualAttendanceDialogProps {

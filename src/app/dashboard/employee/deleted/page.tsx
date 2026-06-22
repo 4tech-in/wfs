@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, RefreshCw, Trash2 } from "lucide-react"
+import { ArrowLeft, RefreshCw, Trash2, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { useDeletedEmployeesQuery } from "@/hooks/queries/use-employees-query"
+import { useDeletedEmployeesQuery, useRestoreEmployeeMutation } from "@/hooks/queries/use-employees-query"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Employee } from "@/types/employee"
@@ -16,6 +16,7 @@ type PopulatedField = { name: string; _id: string }
 export default function DeletedEmployeesPage() {
   const router = useRouter()
   const { data, isLoading, refetch, isFetching } = useDeletedEmployeesQuery()
+  const restoreMutation = useRestoreEmployeeMutation()
 
   const columns: ColumnDef<Employee>[] = [
     {
@@ -93,6 +94,31 @@ export default function DeletedEmployeesPage() {
           <span className="text-[10px] text-slate-400">
             {row.original.deletedAt ? format(new Date(row.original.deletedAt), "HH:mm") : ""}
           </span>
+        </div>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              const userId = row.original._id;
+              if (userId && confirm(`Are you sure you want to restore ${row.original.name}?`)) {
+                restoreMutation.mutate(userId, {
+                  onSuccess: () => refetch()
+                });
+              }
+            }}
+            disabled={restoreMutation.isPending}
+            className="h-8 w-8 rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-100 transition-all"
+            title="Restore Employee"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
         </div>
       ),
     },

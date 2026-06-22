@@ -158,6 +158,20 @@ export function useDeleteMultipleEmployeesMutation() {
 }
 
 /**
+ * Hook to restore a deleted employee
+ */
+export function useRestoreEmployeeMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => employeeService.restore(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.users.all });
+    },
+  });
+}
+
+/**
  * Hook to create new employee ID(s)
  */
 export function useCreateEmployeeIdMutation() {

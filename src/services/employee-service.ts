@@ -167,6 +167,20 @@ export const employeeService = {
     }
   },
 
+  /**
+   * Restore a deleted employee
+   */
+  restore: async (id: string): Promise<void> => {
+    try {
+      await apiClient.put<void, void>(`/user/restore-user/${id}`);
+      toast.success('Employee restored successfully');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to restore employee';
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
+
   deleteMultiple: async (data: { userIds: string[]; companyExitDate: string }): Promise<void> => {
     try {
       await apiClient.post<{ userIds: string[]; companyExitDate: string }, void>('/user/delete-multiple-users', data);

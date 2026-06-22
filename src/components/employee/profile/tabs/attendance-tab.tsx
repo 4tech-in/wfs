@@ -51,6 +51,34 @@ interface AttendanceTabProps {
   onLeaveClick?: () => void;
 }
 
+const formatTimeTo12Hr = (timeStr: string | null | undefined) => {
+  if (!timeStr) return "—";
+  try {
+    let hours = 0;
+    let minutes = 0;
+
+    if (timeStr.includes('T')) {
+      const timePart = timeStr.split('T')[1];
+      const parts = timePart.split(':');
+      hours = parseInt(parts[0], 10);
+      minutes = parseInt(parts[1], 10);
+    } else if (timeStr.includes(':')) {
+      const parts = timeStr.split(':');
+      hours = parseInt(parts[0], 10);
+      minutes = parseInt(parts[1], 10);
+    } else {
+      return timeStr;
+    }
+
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    return `${displayHours.toString().padStart(2, '0')}:${displayMinutes} ${ampm}`;
+  } catch {
+    return "—";
+  }
+};
+
 const statusColors: Record<AttendanceStatus, string> = {
   "Present": "bg-emerald-50 text-emerald-600 border-emerald-100",
   "Absent": "bg-rose-50 text-rose-600 border-rose-100",
@@ -304,12 +332,12 @@ export function AttendanceTab({ employeeId, onLeaveClick }: AttendanceTabProps) 
                         <div className="flex flex-col gap-1 px-1">
                           <div className="flex items-center justify-between text-[10px] font-bold">
                             <span className="text-slate-400 uppercase tracking-tighter">In:</span>
-                            <span className="text-slate-700">{format(new Date(attendance.punchIn), "hh:mm a")}</span>
+                            <span className="text-slate-700">{formatTimeTo12Hr(attendance.punchIn)}</span>
                           </div>
                           {attendance.punchOut ? (
                             <div className="flex items-center justify-between text-[10px] font-bold">
                               <span className="text-slate-400 uppercase tracking-tighter">Out:</span>
-                              <span className="text-slate-700">{format(new Date(attendance.punchOut), "hh:mm a")}</span>
+                              <span className="text-slate-700">{formatTimeTo12Hr(attendance.punchOut)}</span>
                             </div>
                           ) : (
                             <div className="flex items-center justify-between text-[10px] font-bold">

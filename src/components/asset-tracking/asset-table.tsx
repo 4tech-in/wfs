@@ -61,13 +61,15 @@ export const getAssetColumns = (
           return <span className="text-xs text-slate-400 italic font-medium px-2 py-0.5 bg-slate-50 rounded-md border border-slate-100">In Stock</span>
         }
 
-        const displayName = typeof issuedTo === "object" && issuedTo !== null 
-          ? issuedTo.name 
-          : issuedTo
+        const isEmployeeObject = typeof issuedTo === "object" && issuedTo !== null
+        const displayName = isEmployeeObject ? issuedTo.name : issuedTo
+        const uniqueId = isEmployeeObject ? issuedTo.uniqueId : undefined
         
         return (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-600 font-medium">{displayName}</span>
+            <span className="text-sm text-slate-600 font-medium">
+              {displayName} {uniqueId ? `(${uniqueId})` : ""}
+            </span>
           </div>
         )
       },

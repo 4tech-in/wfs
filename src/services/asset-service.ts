@@ -73,6 +73,17 @@ export const assetService = {
     }
   },
 
+  unassign: async (id: string): Promise<unknown> => {
+    try {
+      const response = await apiClient.post<void, unknown>(`/assets/unassign/${id}`);
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to unassign asset';
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
+
   /**
    * Delete an asset
    */

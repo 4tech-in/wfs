@@ -186,8 +186,12 @@ export const employeeService = {
       await apiClient.post<{ userIds: string[]; companyExitDate: string }, void>('/user/delete-multiple-users', data);
       toast.success('Employees deleted successfully');
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete employees';
-      toast.error(errorMessage);
+      const err = error as { data?: { assets?: unknown } };
+      const hasAssets = err && typeof err === 'object' && err.data && typeof err.data === 'object' && 'assets' in err.data;
+      if (!hasAssets) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete employees';
+        toast.error(errorMessage);
+      }
       throw error;
     }
   },

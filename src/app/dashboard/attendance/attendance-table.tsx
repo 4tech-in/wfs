@@ -357,8 +357,7 @@ export function AttendanceTable({
               return;
             }
 
-            // If punchIn is available but punchOut is not, ask for punch out details via manual dialog
-            if (punchIn && !punchOut && onMarkManual) {
+            if (((punchIn && !punchOut) || (!punchIn && punchOut)) && onMarkManual) {
               onMarkManual({
                 employeeId: user._id,
                 companyId: user.company?._id,

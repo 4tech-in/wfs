@@ -86,7 +86,7 @@ export default function VehicleMasterPage() {
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden px-5">
         <VehicleTable
           data={vehicles}
           isLoading={isLoading}

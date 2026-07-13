@@ -123,6 +123,7 @@ export interface EmployeeQueryParams {
   departmentId?: string;
   designationId?: string;
   gender?: string;
+  attendancePolicyStatus?: string;
 }
 
 export interface EmployeeDropdownItem {

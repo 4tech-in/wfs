@@ -22,6 +22,13 @@ import { DepartmentManagementDialog } from "@/components/org/department-manageme
 import { DesignationManagementDialog } from "@/components/org/designation-management-dialog"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Suspense } from "react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 function EmployeeMasterContent() {
   const searchParams = useSearchParams()
@@ -34,6 +41,7 @@ function EmployeeMasterContent() {
   const [gender, setGender] = React.useState<string | undefined>(initialGender)
   const [departmentId, setDepartmentId] = React.useState<string | undefined>(undefined)
   const [designationId, setDesignationId] = React.useState<string | undefined>(undefined)
+  const [attendancePolicyStatus, setAttendancePolicyStatus] = React.useState<string | undefined>(undefined)
   const [isDeptDialogOpen, setIsDeptDialogOpen] = React.useState(false)
   const [isDesgDialogOpen, setIsDesgDialogOpen] = React.useState(false)
   const [companySearch, setCompanySearch] = React.useState("")
@@ -46,6 +54,7 @@ function EmployeeMasterContent() {
     setDepartmentId(undefined)
     setDesignationId(undefined)
     setGender(undefined)
+    setAttendancePolicyStatus(undefined)
     onPaginationChange({ ...pagination, pageIndex: 0 })
     router.push(pathname)
   }
@@ -67,7 +76,8 @@ function EmployeeMasterContent() {
     companyId,
     departmentId,
     designationId,
-    gender
+    gender,
+    attendancePolicyStatus
   } as EmployeeQueryParams)
 
 
@@ -119,7 +129,8 @@ function EmployeeMasterContent() {
               companyId,
               departmentId,
               designationId,
-              gender
+              gender,
+              attendancePolicyStatus
             } as EmployeeQueryParams)}
             defaultSelectedColumns={['name', 'uniqueId', 'designation', 'doj', 'fatherName']}
           />
@@ -185,7 +196,7 @@ function EmployeeMasterContent() {
         onDelete={(id) => setDeletingUserIds([id])}
         extraActions={
           <div className="flex items-center gap-2">
-            {(companyId || departmentId || designationId || gender) && (
+            {(companyId || departmentId || designationId || gender || attendancePolicyStatus) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -271,6 +282,25 @@ function EmployeeMasterContent() {
                   </Button>
                 }
               />
+            </div>
+
+            <div className="w-[180px]">
+              <Select
+                value={attendancePolicyStatus || "all"}
+                onValueChange={(val) => {
+                  setAttendancePolicyStatus(val === "all" ? undefined : val)
+                  onPaginationChange({ ...pagination, pageIndex: 0 })
+                }}
+              >
+                <SelectTrigger className="h-10 border-slate-200 rounded-xl bg-white shadow-sm font-semibold text-xs text-slate-700">
+                  <SelectValue placeholder="Attendance Policy" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-100 shadow-xl bg-white">
+                  <SelectItem value="all" className="text-xs font-semibold text-slate-700 cursor-pointer">All Policies</SelectItem>
+                  <SelectItem value="assigned" className="text-xs font-semibold text-slate-700 cursor-pointer">Assigned</SelectItem>
+                  <SelectItem value="not_assigned" className="text-xs font-semibold text-slate-700 cursor-pointer">Not Assigned</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         }

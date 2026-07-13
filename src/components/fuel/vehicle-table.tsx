@@ -50,21 +50,21 @@ export const getVehicleColumns = (
         </span>
       ),
     },
-    {
-      accessorKey: "createdBy.name",
-      header: "Created By",
-      cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-slate-700">{row.original.createdBy.name}</span>
-          <span className="text-[10px] text-slate-400">{row.original.createdBy.email}</span>
-        </div>
-      ),
-    },
+    // {
+    //   accessorKey: "createdBy.name",
+    //   header: "Created By",
+    //   cell: ({ row }) => (
+    //     <div className="flex flex-col">
+    //       <span className="text-sm font-medium text-slate-700">{row?.original?.createdBy?.name}</span>
+    //       <span className="text-[10px] text-slate-400">{row?.original?.createdBy?.email}</span>
+    //     </div>
+    //   ),
+    // },
     {
       accessorKey: "createdAt",
       header: "Created Date",
       cell: ({ row }) => (
-        <span className="text-sm text-slate-500">{formatDate(row.original.createdAt)}</span>
+        <span className="text-sm text-slate-500">{formatDate(row?.original?.createdAt)}</span>
       ),
     },
     {
@@ -76,7 +76,7 @@ export const getVehicleColumns = (
             variant="ghost"
             size="icon"
             className="text-slate-400 hover:text-[#2eb88a] hover:bg-emerald-50 rounded-xl h-9 w-9 transition-colors"
-            onClick={() => onEdit(row.original)}
+            onClick={() => onEdit(row?.original)}
           >
             <Pencil className="h-4 w-4" />
           </Button>

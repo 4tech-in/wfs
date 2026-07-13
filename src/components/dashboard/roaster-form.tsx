@@ -364,7 +364,7 @@ export function RoasterForm({ onSubmit, isLoading, initialValues, initialEmploye
                           className="rounded-md"
                         />
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium">{employee.name || "Unnamed"}</span>
+                          <span className="text-sm font-medium">{employee?.otherName || employee?.name || "Unnamed"}</span>
                           <span className="text-xs text-slate-500">
                             {('employeeObjId' in employee) 
                               ? (employee as AttendancePolicyUser).employeeObjId?.employeeId 

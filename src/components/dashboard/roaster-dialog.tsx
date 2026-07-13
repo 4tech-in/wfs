@@ -43,12 +43,10 @@ export function RoasterDialog({ trigger, initialValues, title, description, init
         startDate: data.startDate,
         endDate: data.endDate,
       })
-      if (data.is24HourShift) {
-        await assign24HourMutation.mutateAsync({
-          userIds: data.employeeIds,
-          is24HourShift: true,
-        })
-      }
+      await assign24HourMutation.mutateAsync({
+        userIds: data.employeeIds,
+        is24HourShift: !!data.is24HourShift,
+      })
       setOpen(false)
     } catch {
       // Error handled by mutation toast or service

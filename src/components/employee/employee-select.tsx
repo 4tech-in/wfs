@@ -53,7 +53,9 @@ export function EmployeeSelect({
       searchPlaceholder="Type employee name..."
       onSearchChange={setSearch}
       onOpenChange={(open) => open && setHasBeenOpened(true)}
-      getLabel={(emp) => emp.name}
+      getLabel={(emp) =>
+        `${emp.name}${emp.otherName ? ` (${emp.otherName})` : ""} · ${emp.employeeId}`
+      }
       getValue={(emp) => emp._id}
       className={className}
       disabled={disabled}

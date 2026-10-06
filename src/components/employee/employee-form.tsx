@@ -442,7 +442,7 @@ export function EmployeeForm({
     if (prevCompanyIdRef.current !== companyId) {
       if (prevCompanyIdRef.current !== null) {
         form.setValue("employeeObjId", "", { shouldValidate: true });
-        form.setValue("uniqueId", "", { shouldValidate: true });
+        // form.setValue("uniqueId", "", { shouldValidate: true });
       }
       prevCompanyIdRef.current = companyId;
     }

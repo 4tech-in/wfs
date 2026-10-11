@@ -34,14 +34,17 @@ function EmployeeMasterContent() {
   const searchParams = useSearchParams()
   const initialCompanyId = searchParams.get("companyId") || undefined
   const initialGender = searchParams.get("gender") || undefined
+  const initialDepartmentId = searchParams.get("departmentId") || undefined
+  const initialDesignationId = searchParams.get("designationId") || undefined
+  const initialAttendancePolicyStatus = searchParams.get("attendancePolicyStatus") || undefined
 
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null)
   const [deletingUserIds, setDeletingUserIds] = React.useState<string[]>([])
   const [companyId, setCompanyId] = React.useState<string | undefined>(initialCompanyId)
   const [gender, setGender] = React.useState<string | undefined>(initialGender)
-  const [departmentId, setDepartmentId] = React.useState<string | undefined>(undefined)
-  const [designationId, setDesignationId] = React.useState<string | undefined>(undefined)
-  const [attendancePolicyStatus, setAttendancePolicyStatus] = React.useState<string | undefined>(undefined)
+  const [departmentId, setDepartmentId] = React.useState<string | undefined>(initialDepartmentId)
+  const [designationId, setDesignationId] = React.useState<string | undefined>(initialDesignationId)
+  const [attendancePolicyStatus, setAttendancePolicyStatus] = React.useState<string | undefined>(initialAttendancePolicyStatus)
   const [isDeptDialogOpen, setIsDeptDialogOpen] = React.useState(false)
   const [isDesgDialogOpen, setIsDesgDialogOpen] = React.useState(false)
   const [companySearch, setCompanySearch] = React.useState("")
@@ -70,6 +73,25 @@ function EmployeeMasterContent() {
     storageKey: "employee-master",
     initialPageSize: 10,
   })
+
+  // Sync state whenever searchParams changes (e.g. navigation from dashboard)
+  React.useEffect(() => {
+    const pCompanyId = searchParams.get("companyId") || undefined
+    const pGender = searchParams.get("gender") || undefined
+    const pDepartmentId = searchParams.get("departmentId") || undefined
+    const pDesignationId = searchParams.get("designationId") || undefined
+    const pAttendancePolicyStatus = searchParams.get("attendancePolicyStatus") || undefined
+
+    setCompanyId(pCompanyId)
+    setGender(pGender)
+    setDepartmentId(pDepartmentId)
+    setDesignationId(pDesignationId)
+    setAttendancePolicyStatus(pAttendancePolicyStatus)
+
+    if (pCompanyId || pGender || pDepartmentId || pDesignationId || pAttendancePolicyStatus) {
+      onPaginationChange(prev => ({ ...prev, pageIndex: 0 }))
+    }
+  }, [searchParams, onPaginationChange])
 
   const { data, isLoading, refetch, isFetching } = useEmployeesQuery({ 
     ...apiParams, 
@@ -299,6 +321,26 @@ function EmployeeMasterContent() {
                   <SelectItem value="all" className="text-xs font-semibold text-slate-700 cursor-pointer">All Policies</SelectItem>
                   <SelectItem value="assigned" className="text-xs font-semibold text-slate-700 cursor-pointer">Assigned</SelectItem>
                   <SelectItem value="not_assigned" className="text-xs font-semibold text-slate-700 cursor-pointer">Not Assigned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="w-[140px]">
+              <Select
+                value={gender || "all"}
+                onValueChange={(val) => {
+                  setGender(val === "all" ? undefined : val)
+                  onPaginationChange({ ...pagination, pageIndex: 0 })
+                }}
+              >
+                <SelectTrigger className="h-10 border-slate-200 rounded-xl bg-white shadow-sm font-semibold text-xs text-slate-700">
+                  <SelectValue placeholder="Gender" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-100 shadow-xl bg-white">
+                  <SelectItem value="all" className="text-xs font-semibold text-slate-700 cursor-pointer">All Genders</SelectItem>
+                  <SelectItem value="male" className="text-xs font-semibold text-slate-700 cursor-pointer">Male</SelectItem>
+                  <SelectItem value="female" className="text-xs font-semibold text-slate-700 cursor-pointer">Female</SelectItem>
+                  <SelectItem value="other" className="text-xs font-semibold text-slate-700 cursor-pointer">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

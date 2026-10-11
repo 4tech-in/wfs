@@ -283,10 +283,24 @@ export default function DashboardPage() {
     })
   }
 
-  const handleGenderClick = (genderId?: string) => {
+  const getDynamicDepartmentColor = (index: number) => {
+    // Generate distinct, vibrant colors dynamically using golden angle distribution
+    const hue = Math.round((index * 137.508) % 360)
+    const s = 0.65
+    const l = 0.48
+    const a = s * Math.min(l, 1 - l)
+    const f = (n: number) => {
+      const k = (n + hue / 30) % 12
+      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+      return Math.round(255 * color).toString(16).padStart(2, "0")
+    }
+    return `#${f(0)}${f(8)}${f(4)}`
+  }
+
+  const handleDepartmentClick = (departmentId?: string) => {
     const params = new URLSearchParams()
-    if (genderId && (genderId === 'male' || genderId === 'female')) {
-      params.set('gender', genderId)
+    if (departmentId && departmentId !== 'overall' && departmentId !== 'unassigned') {
+      params.set('departmentId', departmentId)
     }
     
     const companyIds = selectedCompanyIds.filter(id => id !== 'overall')
@@ -294,45 +308,28 @@ export default function DashboardPage() {
       params.set('companyId', companyIds[0])
     }
 
-    const deptIds = selectedDeptIds.filter(id => id !== 'overall')
-    if (deptIds.length > 0) {
-      params.set('departmentId', deptIds[0])
-    }
-    
     router.push(`/dashboard/employee?${params.toString()}`)
   }
 
-  // Derive Display Data for Gender Distribution
-  const genderDistributionData = useMemo(() => {
-    if (!currentStats) return []
+  // Derive Display Data for Department Distribution
+  const departmentDistributionData = useMemo(() => {
+    const deptList = genderStatsData?.data?.departmentWise
+    if (!deptList || deptList.length === 0) return []
     
-    const { male = 0, female = 0, other = 0, totalUsers = 0 } = currentStats
-    const total = totalUsers || 1
+    const total = currentStats?.totalUsers || deptList.reduce((acc, curr) => acc + (curr.totalUsers || 0), 0) || 1
 
-    return [
-      { 
-        name: "Male", 
-        value: Math.round((male / total) * 100), 
-        count: male, 
-        color: "#0f172a", // Slate 900
-        id: "male"
-      },
-      { 
-        name: "Female", 
-        value: Math.round((female / total) * 100), 
-        count: female, 
-        color: "#2dd4bf", // Teal 400
-        id: "female"
-      },
-      { 
-        name: "Other", 
-        value: Math.round((other / total) * 100), 
-        count: other, 
-        color: "#94a3b8", // Slate 400
-        id: "other"
+    return deptList.map((dept, index) => {
+      const count = dept.totalUsers || 0
+      const percentage = total > 0 ? Math.round((count / total) * 100) : 0
+      return {
+        name: dept.departmentName || "Unassigned",
+        value: percentage,
+        count: count,
+        color: getDynamicDepartmentColor(index),
+        id: dept.departmentId,
       }
-    ]
-  }, [currentStats])
+    })
+  }, [genderStatsData, currentStats])
 
   // Derive Display Data for Attendance Distribution
   const attendanceDistributionData = useMemo(() => {
@@ -682,12 +679,12 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        {/* Gender Distribution */}
+        {/* Department Distribution */}
         <Card className="border-none ring-1 ring-gray-100 shadow-none rounded-[28px] p-8 flex flex-col">
           <div className="flex flex-col gap-6 mb-8">
             <div className="space-y-1">
-              <h3 className="text-xl font-bold text-slate-900 font-heading">Gender Distribution</h3>
-              <p className="text-xs font-semibold text-slate-400">Gender-wise breakdown of employees.</p>
+              <h3 className="text-xl font-bold text-slate-900 font-heading">Department Distribution</h3>
+              <p className="text-xs font-semibold text-slate-400">Department-wise breakdown of employees.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <MultiSelect
@@ -736,7 +733,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={genderDistributionData}
+                  data={departmentDistributionData}
                   cx="50%"
                   cy="50%"
                   innerRadius={75}
@@ -748,7 +745,7 @@ export default function DashboardPage() {
                   animationDuration={1500}
                   cornerRadius={6}
                 >
-                  {genderDistributionData.map((entry, index) => (
+                  {departmentDistributionData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -762,32 +759,43 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-8 space-y-4">
-            {genderDistributionData.map((item, index) => (
-              <div 
-                key={`legend-${index}`} 
-                onClick={() => handleGenderClick(item.id)}
-                className="flex items-center justify-between group hover:bg-slate-50 p-2 -mx-2 rounded-xl transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-7 w-12 flex items-center justify-center rounded-lg text-[11px] font-black text-white shadow-sm" style={{ backgroundColor: item.color }}>
-                    {item.value}%
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">{item.name}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-slate-800">{item.count}</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Employees</span>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
-                </div>
+          <div className="mt-8 space-y-3 max-h-[280px] overflow-y-auto pr-1">
+            {departmentDistributionData.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-xs font-semibold text-slate-400">No department data available</p>
               </div>
-            ))}
+            ) : (
+              departmentDistributionData.map((item, index) => (
+                <div 
+                  key={`legend-${index}`} 
+                  onClick={() => handleDepartmentClick(item.id)}
+                  className="flex items-center justify-between group hover:bg-slate-50 p-2 -mx-2 rounded-xl transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div 
+                      className="h-7 min-w-[48px] px-2 flex items-center justify-center rounded-lg text-[11px] font-black text-white shadow-sm shrink-0" 
+                      style={{ backgroundColor: item.color }}
+                    >
+                      {item.value}%
+                    </div>
+                    <span className="text-sm font-bold text-slate-700 truncate" title={item.name}>
+                      {item.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-800">{item.count}</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Employees</span>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <Button 
-            onClick={() => handleGenderClick()}
+            onClick={() => handleDepartmentClick()}
             className="w-full mt-6 bg-slate-50 border border-slate-100 text-slate-500 font-black text-[10px] h-10 shadow-none hover:bg-slate-100 hover:text-slate-700 rounded-xl group transition-all uppercase tracking-wider"
           >
             See More

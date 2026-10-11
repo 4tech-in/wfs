@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { RefreshCw, Upload, Plus, CalendarIcon, ClipboardCheck, Search, Download, FileSpreadsheet, FileText, FileDown, Loader2 } from "lucide-react"
+import { RefreshCw, Upload, Plus, CalendarIcon, ClipboardCheck, Search, Download, FileSpreadsheet, FileText, FileDown, Loader2, CalendarDays } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { AttendanceUploadDialog } from "@/components/dashboard/attendance-upload-dialog"
+import { MonthlyAttendanceExportDialog } from "@/components/dashboard/monthly-attendance-export-dialog"
 import { MarkLeaveDialog } from "@/components/dashboard/mark-leave-dialog"
 import { MarkMultipleAttendanceDialog } from "@/components/dashboard/mark-multiple-attendance-dialog"
 import { MarkManualAttendanceDialog } from "@/components/dashboard/mark-attendance-dialog"
@@ -71,6 +72,7 @@ function AttendanceContent() {
     const [search, setSearch] = React.useState("")
     const [debouncedSearch, setDebouncedSearch] = React.useState("")
     const [isExporting, setIsExporting] = React.useState(false)
+    const [isMonthlyExportOpen, setIsMonthlyExportOpen] = React.useState(false)
     const [manualAttendance, setManualAttendance] = React.useState<{
         open: boolean;
         initialData?: ManualAttendanceInitialData;
@@ -262,30 +264,53 @@ function AttendanceContent() {
                                 <span className="font-semibold text-sm">Export</span>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-xl min-w-[160px]">
+                        <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-xl min-w-[190px]">
                             <DropdownMenuItem 
                                 className="gap-2 font-semibold text-xs text-slate-700 rounded-lg cursor-pointer py-2.5"
                                 onClick={() => handleExport('excel')}
                             >
                                 <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-                                Export to Excel
+                                Daily Export (Excel)
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                                 className="gap-2 font-semibold text-xs text-slate-700 rounded-lg cursor-pointer py-2.5"
                                 onClick={() => handleExport('csv')}
                             >
                                 <FileText className="h-4 w-4 text-blue-600" />
-                                Export to CSV
+                                Daily Export (CSV)
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                                 className="gap-2 font-semibold text-xs text-slate-700 rounded-lg cursor-pointer py-2.5"
                                 onClick={() => handleExport('pdf')}
                             >
                                 <FileDown className="h-4 w-4 text-rose-600" />
-                                Export to PDF
+                                Daily Export (PDF)
+                            </DropdownMenuItem>
+                            <div className="h-px bg-slate-100 my-1" />
+                            <DropdownMenuItem 
+                                className="gap-2 font-bold text-xs text-emerald-700 bg-emerald-50/50 hover:bg-emerald-100/70 rounded-lg cursor-pointer py-2.5"
+                                onClick={() => setIsMonthlyExportOpen(true)}
+                            >
+                                <CalendarDays className="h-4 w-4 text-emerald-600" />
+                                Monthly Export Sheet
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+
+                    <Button 
+                        variant="outline" 
+                        onClick={() => setIsMonthlyExportOpen(true)}
+                        className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50 flex gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"
+                    >
+                        <CalendarDays className="h-4 w-4 text-emerald-500" />
+                        <span className="font-semibold text-sm">Monthly Export</span>
+                    </Button>
+
+                    <MonthlyAttendanceExportDialog
+                        open={isMonthlyExportOpen}
+                        onOpenChange={setIsMonthlyExportOpen}
+                        defaultCompanyId={companyId}
+                    />
                     
                     {!isHr && (
                         <MarkLeaveDialog

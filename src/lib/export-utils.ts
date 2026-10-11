@@ -29,6 +29,18 @@ export const exportToCSV = (data: Record<string, unknown>[], filename: string) =
  */
 export const exportToExcel = (data: Record<string, unknown>[], filename: string, sheetName: string = 'Sheet1') => {
   const worksheet = XLSX.utils.json_to_sheet(data);
+
+  if (data.length > 0) {
+    const keys = Object.keys(data[0] || {});
+    worksheet['!cols'] = keys.map(k => {
+      if (k.startsWith('Day ')) return { wch: 15 };
+      if (k.toLowerCase().includes('name')) return { wch: 22 };
+      if (k.toLowerCase().includes('id')) return { wch: 14 };
+      if (k.toLowerCase().includes('department') || k.toLowerCase().includes('designation') || k.toLowerCase().includes('company')) return { wch: 18 };
+      return { wch: 14 };
+    });
+  }
+
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   XLSX.writeFile(workbook, `${filename}.xlsx`);

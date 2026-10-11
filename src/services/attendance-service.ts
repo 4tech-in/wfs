@@ -134,6 +134,46 @@ export const attendanceService = {
       throw error;
     }
   },
+
+  /**
+   * Get monthly attendance matrix for full-month export
+   */
+  getMonthlyMatrix: async (year: number, month: number, companyId?: string) => {
+    try {
+      return await apiClient.get<void, {
+        success: boolean;
+        year: number;
+        month: number;
+        totalDays: number;
+        data: Array<{
+          sNo: number;
+          user: {
+            _id: string;
+            name: string;
+            employeeId: string;
+            uniqueId: number;
+            designation: string;
+            department: string;
+            companyName: string;
+          };
+          days: Record<number, { status: string; punchIn?: string; punchOut?: string; hours?: number }>;
+          summary: {
+            present: number;
+            absent: number;
+            halfDay: number;
+            onLeave: number;
+            totalWorkedHours: number;
+            overtimeHours: number;
+          };
+        }>;
+      }>('/attendance/monthly-matrix', {
+        params: { year, month, companyId: companyId === 'all' ? undefined : companyId }
+      });
+    } catch (error: unknown) {
+      toast.error('Failed to fetch monthly attendance matrix');
+      throw error;
+    }
+  },
 };
 
 export default attendanceService;

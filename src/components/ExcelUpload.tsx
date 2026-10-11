@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useDropzone } from "react-dropzone";
 import apiClient from "@/lib/api-client";
 import axios from "axios";
@@ -8,7 +9,7 @@ import * as XLSX from "xlsx";
 import { 
     Upload, 
     FileText, 
-    X,
+    X, 
     Loader2
 } from "lucide-react";
 import { 
@@ -48,6 +49,7 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({
     templateSampleData,
     templateFileName = "template.xlsx"
 }) => {
+    const queryClient = useQueryClient();
     const [open, setOpen] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -103,6 +105,7 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({
                 },
             });
 
+            queryClient.clear();
             toast.success("File uploaded successfully!");
             onSuccess?.(response);
             handleClose();
@@ -174,7 +177,7 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({
 
                     {!file ? (
                         <div
-                            {...getRootProps()}
+                            {...(getRootProps() as React.HTMLAttributes<HTMLDivElement>)}
                             className={cn(
                                 "border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-all cursor-pointer",
                                 isDragActive 

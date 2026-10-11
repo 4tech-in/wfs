@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { attendanceService } from "@/services/attendance-service"
 import { toast } from "sonner"
 
@@ -27,6 +28,7 @@ interface AttendanceContextType {
 export const AttendanceContext = React.createContext<AttendanceContextType | undefined>(undefined)
 
 export function AttendanceProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null)
   const [isUploading, setIsUploading] = React.useState(false)
@@ -99,6 +101,9 @@ export function AttendanceProvider({ children }: { children: React.ReactNode }) 
       }, 100);
 
       await attendanceService.uploadAttendance(selectedFile)
+
+      // Clear React Query cache so newly uploaded data refetches immediately
+      queryClient.clear()
       
       clearInterval(progressInterval);
       setProgress(100);

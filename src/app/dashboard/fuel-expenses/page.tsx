@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Fuel, Plus, Car } from "lucide-react"
+import { Fuel, Plus, Car, ArrowUpRight, ArrowDownRight, Wallet, FileSpreadsheet, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { FuelTable } from "@/components/fuel/fuel-table"
@@ -11,10 +11,15 @@ import { PaginationState } from "@tanstack/react-table"
 import { useFuelCardStatsQuery, useFuelExpensesQuery, useDeleteFuelMutation } from "@/hooks/queries/use-fuel"
 import { useVehiclesInfiniteQuery } from "@/hooks/queries/use-vehicles"
 import { InfiniteScrollSelect } from "@/components/ui/infinite-scroll-select"
+import { DatePickerWithRange } from "@/components/ui/date-range-picker"
+import { DateRange } from "react-day-picker"
 import { Vehicle } from "@/types/vehicle"
 import { FuelRecord } from "@/types/fuel"
 import { Card } from "@/components/ui/card"
-import { ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react"
+import { format } from "date-fns"
+import * as XLSX from "xlsx"
+import { fuelService } from "@/services/fuel-service"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +44,8 @@ export default function FuelExpensePage() {
   const [searchTerm, setSearchTerm] = React.useState("")
   const debouncedSearch = useDebounce(searchTerm, 400)
   const [selectedVehicleNo, setSelectedVehicleNo] = React.useState<string | undefined>()
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>()
+  const [isExporting, setIsExporting] = React.useState(false)
   const [vehicleSearch, setVehicleSearch] = React.useState("")
   const debouncedVehicleSearch = useDebounce(vehicleSearch, 400)
   const [deletingFuelId, setDeletingFuelId] = React.useState<string | null>(null)
@@ -59,12 +66,22 @@ export default function FuelExpensePage() {
     [vehicleData]
   )
 
+  const startDateStr = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined
+  const endDateStr = dateRange?.to
+    ? format(dateRange.to, "yyyy-MM-dd")
+    : dateRange?.from
+    ? format(dateRange.from, "yyyy-MM-dd")
+    : undefined
+
   const { data, isLoading } = useFuelExpensesQuery({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
-    search: selectedVehicleNo || debouncedSearch || undefined,
+    vehicleId: selectedVehicleNo || undefined,
+    startDate: startDateStr,
+    endDate: endDateStr,
+    search: debouncedSearch || undefined,
     sortBy: "createdAt",
-    sortOrder: "desc"
+    sortOrder: "desc",
   })
 
   const { data: stats, isLoading: isStatsLoading } = useFuelCardStatsQuery()
@@ -72,6 +89,104 @@ export default function FuelExpensePage() {
 
   const expenses = data?.data || []
   const total = data?.pagination?.total || 0
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true)
+      const res = await fuelService.getExportData({
+        vehicleId: selectedVehicleNo,
+        startDate: startDateStr,
+        endDate: endDateStr,
+        search: debouncedSearch || undefined,
+      })
+
+      const records = res?.data || []
+      if (records.length === 0) {
+        toast.info("No fuel records found for the selected filter.")
+        return
+      }
+
+      let sumFuel = 0
+      let sumAmount = 0
+
+      const rows = records.map((item, idx) => {
+        const fuelAmount = item.totalAmount ?? 0
+        const fuelLtr = item.totalFuel ?? 0
+        sumFuel += fuelLtr
+        sumAmount += fuelAmount
+
+        let formattedDate = "-"
+        if (item.fillingDate) {
+          try {
+            formattedDate = format(new Date(item.fillingDate), "dd MMM yyyy")
+          } catch {
+            formattedDate = String(item.fillingDate)
+          }
+        }
+
+        const driverName = item.employeeId
+          ? `${item.employeeId.name || ""}${item.employeeId.employeeId ? ` (${item.employeeId.employeeId})` : ""}`
+          : "Not assigned"
+
+        return {
+          "Sr. No.": idx + 1,
+          "Date": formattedDate,
+          "Vehicle No": item.vehicleId?.vehicleNo || "-",
+          "Vehicle Code": item.vehicleId?.vehicleCode || "-",
+          "Employee / Driver": driverName,
+          "Odometer (KM)": item.odometer ?? "-",
+          "Fuel Type": item.fuelType || "Diesel",
+          "Rate/Ltr (₹)": item.ratePerLtr ?? 0,
+          "Total Fuel (L)": item.totalFuel ?? 0,
+          "Avg (km/L)": item.average ? Number(item.average.toFixed(2)) : "-",
+          "Amount (₹)": item.totalAmount ?? 0,
+        }
+      })
+
+      // Add summary total row
+      rows.push({
+        "Sr. No.": "" as any,
+        "Date": "TOTAL" as any,
+        "Vehicle No": "" as any,
+        "Vehicle Code": "" as any,
+        "Employee / Driver": "" as any,
+        "Odometer (KM)": "" as any,
+        "Fuel Type": "" as any,
+        "Rate/Ltr (₹)": "" as any,
+        "Total Fuel (L)": Number(sumFuel.toFixed(2)) as any,
+        "Avg (km/L)": "" as any,
+        "Amount (₹)": Number(sumAmount.toFixed(2)) as any,
+      })
+
+      const worksheet = XLSX.utils.json_to_sheet(rows)
+      worksheet["!cols"] = [
+        { wch: 8 },  // Sr. No.
+        { wch: 15 }, // Date
+        { wch: 18 }, // Vehicle No
+        { wch: 14 }, // Vehicle Code
+        { wch: 25 }, // Employee / Driver
+        { wch: 16 }, // Odometer
+        { wch: 12 }, // Fuel Type
+        { wch: 14 }, // Rate/Ltr
+        { wch: 15 }, // Total Fuel
+        { wch: 15 }, // Avg
+        { wch: 18 }, // Amount
+      ]
+
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Fuel Expenses")
+
+      const dateSuffix = format(new Date(), "yyyyMMdd_HHmm")
+      const fileName = `Fuel_Expenses_${selectedVehicleNo ? `${selectedVehicleNo}_` : ""}${dateSuffix}.xlsx`
+      XLSX.writeFile(workbook, fileName)
+      toast.success(`Exported ${records.length} fuel records successfully!`)
+    } catch (err: any) {
+      console.error("Export error:", err)
+      toast.error(err?.message || "Failed to export data to Excel")
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8 p-2 md:p-8 bg-slate-50/30 min-h-screen">
@@ -197,8 +312,8 @@ export default function FuelExpensePage() {
           setDeletingFuelId(id)
         }}
         filterNode={
-          <div className="flex items-center gap-2">
-            <div className="w-[240px]">
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-[190px] shrink-0">
               <InfiniteScrollSelect<Vehicle>
                 value={selectedVehicleNo}
                 onValueChange={(val, item) => {
@@ -218,16 +333,48 @@ export default function FuelExpensePage() {
                 className="h-9"
               />
             </div>
-            {selectedVehicleNo && (
+
+            <div className="shrink-0">
+              <DatePickerWithRange
+                date={dateRange}
+                setDate={(range) => {
+                  setDateRange(range)
+                  setPagination((p) => ({ ...p, pageIndex: 0 }))
+                }}
+                buttonClassName="h-9 w-[215px] rounded-lg text-xs"
+              />
+            </div>
+
+            {(selectedVehicleNo || dateRange) && (
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={() => setSelectedVehicleNo(undefined)}
-                className="text-slate-500 hover:text-rose-500 h-9"
+                onClick={() => {
+                  setSelectedVehicleNo(undefined)
+                  setDateRange(undefined)
+                  setPagination((p) => ({ ...p, pageIndex: 0 }))
+                }}
+                className="text-slate-500 hover:text-rose-500 h-9 px-2 text-xs flex items-center gap-1 shrink-0"
+                title="Clear filters"
               >
-                Clear
+                <X className="h-3.5 w-3.5" /> Clear
               </Button>
             )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="h-9 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg font-semibold flex items-center gap-1.5 shadow-xs transition-colors shrink-0 whitespace-nowrap"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+              )}
+              Export Excel
+            </Button>
           </div>
         }
       />
@@ -246,6 +393,7 @@ export default function FuelExpensePage() {
         initialValues={editingFuel ? {
           fillingDate: editingFuel.fillingDate ? new Date(editingFuel.fillingDate).toISOString().substring(0, 10) : "",
           vehicleId: typeof editingFuel.vehicleId === 'object' && editingFuel.vehicleId !== null ? editingFuel.vehicleId._id : String(editingFuel.vehicleId || ""),
+          employeeId: typeof editingFuel.employeeId === 'object' && editingFuel.employeeId !== null ? editingFuel.employeeId._id : String(editingFuel.employeeId || ""),
           odometer: String(editingFuel.odometer),
           fuelType: editingFuel.fuelType || "Diesel",
           ratePerLtr: String(editingFuel.ratePerLtr),

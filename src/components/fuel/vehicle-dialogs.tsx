@@ -21,10 +21,18 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useCreateVehicleMutation, useUpdateVehicleMutation } from "@/hooks/queries/use-vehicles"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const vehicleFormSchema = z.object({
   vehicleNo: z.string().min(1, "Vehicle number is required"),
   vehicleCode: z.string().min(1, "Vehicle code is required"),
+  fuelType: z.string().min(1, "Fuel type is required"),
 })
 
 type VehicleFormValues = z.infer<typeof vehicleFormSchema>
@@ -47,6 +55,7 @@ export function VehicleDialog({ open, onOpenChange, onSuccess, mode, initialValu
     defaultValues: {
       vehicleNo: "",
       vehicleCode: "",
+      fuelType: "Diesel",
     },
   })
 
@@ -55,11 +64,13 @@ export function VehicleDialog({ open, onOpenChange, onSuccess, mode, initialValu
       form.reset({
         vehicleNo: initialValues.vehicleNo || "",
         vehicleCode: initialValues.vehicleCode || "",
+        fuelType: initialValues.fuelType || "Diesel",
       })
     } else if (open && mode === "add") {
       form.reset({
         vehicleNo: "",
         vehicleCode: "",
+        fuelType: "Diesel",
       })
     }
   }, [open, initialValues, mode, form])
@@ -89,7 +100,7 @@ export function VehicleDialog({ open, onOpenChange, onSuccess, mode, initialValu
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <FormField
               control={form.control}
               name="vehicleNo"
@@ -112,6 +123,27 @@ export function VehicleDialog({ open, onOpenChange, onSuccess, mode, initialValu
                   <FormControl>
                     <Input placeholder="VH001" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fuelType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fuel Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select fuel type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Diesel">Diesel</SelectItem>
+                      <SelectItem value="Petrol">Petrol</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

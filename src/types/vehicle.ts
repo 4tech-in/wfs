@@ -2,6 +2,7 @@ export interface Vehicle {
   _id: string;
   vehicleNo: string;
   vehicleCode: string;
+  fuelType?: "Diesel" | "Petrol" | string;
   createdBy: {
     _id: string;
     name: string;

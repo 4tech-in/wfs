@@ -18,6 +18,7 @@ interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> 
   date: DateRange | undefined
   setDate: (date: DateRange | undefined) => void
   disabled?: Matcher | Matcher[]
+  buttonClassName?: string
 }
 
 export function DatePickerWithRange({
@@ -25,9 +26,10 @@ export function DatePickerWithRange({
   date,
   setDate,
   disabled,
+  buttonClassName,
 }: DatePickerWithRangeProps) {
   return (
-    <div className={cn("grid gap-2", className)}>
+    <div className={cn("inline-flex items-center", className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -35,7 +37,8 @@ export function DatePickerWithRange({
             variant={"outline"}
             className={cn(
               "w-[260px] justify-start text-left font-bold border-slate-200 rounded-xl h-10 shadow-sm",
-              !date && "text-muted-foreground"
+              !date && "text-muted-foreground",
+              buttonClassName
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />

@@ -132,6 +132,8 @@ export interface EmployeeDropdownItem {
   employeeId: string;
   uniqueId?: number;
   otherName?: string;
+  departmentId?: string;
+  departmentName?: string;
 }
 
 export interface EmployeeDropdownResponse {

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 export interface CreateVehicleDto {
   vehicleNo: string;
   vehicleCode: string;
+  fuelType?: string;
 }
 
 /**

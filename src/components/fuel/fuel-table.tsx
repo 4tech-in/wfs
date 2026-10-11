@@ -67,6 +67,22 @@ export const getFuelColumns = (
       ),
     },
     {
+      accessorKey: "employeeId.name",
+      header: "Employee / Driver",
+      cell: ({ row }) => {
+        const emp = row.original.employeeId;
+        if (!emp || !emp.name) return <span className="text-xs text-slate-400 italic">Not assigned</span>;
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-slate-900">{emp.name}</span>
+            <span className="text-[10px] text-slate-400 font-medium">
+              {emp.otherName ? `${emp.otherName} · ` : ""}{emp.employeeId || emp.uniqueId || ""}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "odometer",
       header: "Odometer",
       cell: ({ row }) => (

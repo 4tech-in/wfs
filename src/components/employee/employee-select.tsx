@@ -8,6 +8,7 @@ import { EmployeeDropdownItem } from "@/types/employee"
 
 interface EmployeeSelectProps {
   value?: string
+  departmentId?: string
   onValueChange: (value: string, employee: EmployeeDropdownItem) => void
   placeholder?: string
   className?: string
@@ -16,6 +17,7 @@ interface EmployeeSelectProps {
 
 export function EmployeeSelect({
   value,
+  departmentId,
   onValueChange,
   placeholder = "Search employee...",
   className,
@@ -32,7 +34,7 @@ export function EmployeeSelect({
     isFetchingNextPage,
     isLoading,
   } = useEmployeesDropdownInfiniteQuery(
-    { search: debouncedSearch, limit: 10 },
+    { search: debouncedSearch, departmentId: departmentId || undefined, limit: 10 },
     hasBeenOpened || !!value
   )
 

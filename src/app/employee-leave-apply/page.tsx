@@ -11,6 +11,9 @@ import {
   Send,
   ChevronLeft,
   CheckCircle2,
+  Building2,
+  Printer,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import apiClient from "@/lib/api-client";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import {
   Popover,
   PopoverContent,
@@ -34,10 +37,23 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { useDepartmentsQuery } from "@/hooks/queries/use-org";
+import { EmployeeSelect } from "@/components/employee/employee-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import Image from "next/image";
 
 const leaveFormSchema = z.object({
-  employeeId: z.string().min(1, "Employee ID is required"),
+  departmentId: z.string().optional(),
+  departmentName: z.string().optional(),
+  employeeId: z.string().min(1, "Employee is required"),
   name: z.string().min(2, "Name is required"),
+  leaveType: z.string().min(1, "Leave type is required"),
   fromDate: z.string().min(1, "Start date is required"),
   toDate: z.string().min(1, "End date is required"),
   reason: z.string().min(5, "Please provide a reason (min 5 chars)"),
@@ -52,11 +68,21 @@ export default function ApplyForLeavePage() {
   );
   const router = useRouter();
 
+  const { data: deptsData, isLoading: isDeptsLoading } = useDepartmentsQuery();
+  const departments = deptsData?.data?.filter((d) => d.isActive !== false) || [];
+
+  const [selectedDeptId, setSelectedDeptId] = React.useState<string>("all");
+
+  const [selectedUserObjId, setSelectedUserObjId] = React.useState<string>("");
+
   const form = useForm<LeaveFormValues>({
     resolver: zodResolver(leaveFormSchema),
     defaultValues: {
+      departmentId: "",
+      departmentName: "",
       employeeId: "",
       name: "",
+      leaveType: "Casual",
       fromDate: new Date().toISOString().substring(0, 10),
       toDate: new Date().toISOString().substring(0, 10),
       reason: "",
@@ -74,14 +100,13 @@ export default function ApplyForLeavePage() {
         name: values.name,
         fromDate: values.fromDate,
         toDate: values.toDate,
-        leaveType: "Sick",
+        leaveType: values.leaveType || "Casual",
         reason: values.reason,
       };
 
       await apiClient.post("/leave", payload);
       toast.success("Leave application submitted successfully!");
       setSubmittedData(values);
-      // form.reset() // Don't reset yet so we can show the summary
     } catch (error: unknown) {
       const err = error as { data?: { message?: string }; message?: string };
       const msg =
@@ -93,6 +118,17 @@ export default function ApplyForLeavePage() {
       setIsLoading(false);
     }
   };
+
+  // Calculate leave days for print format
+  const leaveDays = React.useMemo(() => {
+    const from = submittedData?.fromDate ? new Date(submittedData.fromDate) : null;
+    const to = submittedData?.toDate ? new Date(submittedData.toDate) : null;
+    if (from && to && !isNaN(from.getTime()) && !isNaN(to.getTime())) {
+      const diff = differenceInCalendarDays(to, from) + 1;
+      return diff > 0 ? diff : 1;
+    }
+    return 1;
+  }, [submittedData]);
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col items-center p-6 md:p-10">
@@ -109,12 +145,11 @@ export default function ApplyForLeavePage() {
         <h1 className="text-xl md:text-2xl font-black italic text-slate-900 tracking-tight">
           Apply for Leave
         </h1>
-        <div className="w-10" /> {/* Spacer */}
+        <div className="w-10" />
       </div>
 
       <Card className="w-full max-w-md md:max-w-xl border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] rounded-[32px] overflow-hidden mb-10 shrink-0">
         <div className="bg-gradient-to-br from-[#2eb88a] to-[#1e8a66] p-6 md:p-8 text-white relative overflow-hidden">
-          {/* Decorative elements */}
           <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
 
           <div className="relative z-10 flex items-center gap-5">
@@ -135,6 +170,52 @@ export default function ApplyForLeavePage() {
         <div className="p-6 md:p-10 bg-white">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Department Selection */}
+              <div className="space-y-1.5">
+                <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mb-1">
+                  <Building2 className="h-3 w-3 text-[#2eb88a]" />
+                  Department
+                </FormLabel>
+                <Select
+                  value={selectedDeptId}
+                  onValueChange={(val) => {
+                    setSelectedDeptId(val);
+                    if (val === "all") {
+                      form.setValue("departmentId", "");
+                      form.setValue("departmentName", "");
+                    } else {
+                      const dept = departments.find((d: any) => d._id === val);
+                      form.setValue("departmentId", val);
+                      form.setValue("departmentName", dept?.name || "");
+                    }
+                    // Clear employee when department changes
+                    setSelectedUserObjId("");
+                    form.setValue("employeeId", "");
+                    form.setValue("name", "");
+                  }}
+                  disabled={isDeptsLoading}
+                >
+                  <SelectTrigger className="w-full rounded-xl border-slate-100 bg-slate-50/50 h-12 md:h-14 px-5 focus:border-[#2eb88a] focus:ring-[#2eb88a]/10 font-bold text-base transition-all text-slate-800">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-100 shadow-xl max-h-60">
+                    <SelectItem value="all" className="font-bold py-2.5">
+                      All Departments
+                    </SelectItem>
+                    {departments.map((dept: any) => (
+                      <SelectItem
+                        key={dept._id}
+                        value={dept._id}
+                        className="font-medium py-2.5"
+                      >
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Employee Selection */}
               <FormField
                 control={form.control}
                 name="employeeId"
@@ -142,14 +223,26 @@ export default function ApplyForLeavePage() {
                   <FormItem className="space-y-1.5">
                     <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mb-1">
                       <User className="h-3 w-3 text-[#2eb88a]" />
-                      Employee ID
+                      Select Employee
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="e.g. EMP-001"
-                        {...field}
-                        value={field.value ?? ""}
-                        className="rounded-xl border-slate-100 bg-slate-50/50 h-12 md:h-14 px-5 focus:border-[#2eb88a] focus:ring-[#2eb88a]/10 font-bold text-base transition-all"
+                      <EmployeeSelect
+                        departmentId={selectedDeptId === "all" ? undefined : selectedDeptId}
+                        value={selectedUserObjId}
+                        placeholder={
+                          selectedDeptId === "all"
+                            ? "Search employee by name or ID..."
+                            : "Search employee in selected department..."
+                        }
+                        onValueChange={(selectedId, employee) => {
+                          setSelectedUserObjId(selectedId);
+                          field.onChange(employee.employeeId);
+                          form.setValue("name", employee.name);
+                          if (employee.departmentName) {
+                            form.setValue("departmentName", employee.departmentName);
+                          }
+                        }}
+                        className="rounded-xl border-slate-100 bg-slate-50/50 h-12 md:h-14 px-5 font-bold text-base focus:border-[#2eb88a] focus:ring-[#2eb88a]/10"
                       />
                     </FormControl>
                     <FormMessage className="text-[10px] font-bold" />
@@ -157,28 +250,89 @@ export default function ApplyForLeavePage() {
                 )}
               />
 
+              {/* Employee ID and Full Name Preview */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="employeeId"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        Employee ID
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. EMP-001"
+                          {...field}
+                          value={field.value ?? ""}
+                          className="rounded-xl border-slate-100 bg-slate-50/50 h-11 px-4 font-bold text-sm"
+                        />
+                      </FormControl>
+                      <FormMessage className="text-[10px] font-bold" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        Full Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. Ramesh Kumar"
+                          {...field}
+                          value={field.value ?? ""}
+                          className="rounded-xl border-slate-100 bg-slate-50/50 h-11 px-4 font-bold text-sm"
+                        />
+                      </FormControl>
+                      <FormMessage className="text-[10px] font-bold" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Leave Type */}
               <FormField
                 control={form.control}
-                name="name"
+                name="leaveType"
                 render={({ field }) => (
                   <FormItem className="space-y-1.5">
-                    <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mb-1">
-                      <User className="h-3 w-3 text-[#2eb88a]" />
-                      Full Name
+                    <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      Leave Type
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g. Ramesh Kumar"
-                        {...field}
-                        value={field.value ?? ""}
-                        className="rounded-xl border-slate-100 bg-slate-50/50 h-12 md:h-14 px-5 focus:border-[#2eb88a] focus:ring-[#2eb88a]/10 font-bold text-base transition-all"
-                      />
-                    </FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full rounded-xl border-slate-100 bg-slate-50/50 h-12 md:h-14 px-5 focus:border-[#2eb88a] focus:ring-[#2eb88a]/10 font-bold text-base transition-all text-slate-800">
+                          <SelectValue placeholder="Select leave type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl border-slate-100 shadow-xl">
+                        <SelectItem value="Casual" className="font-bold py-2.5">
+                          Casual Leave
+                        </SelectItem>
+                        <SelectItem value="Sick" className="font-bold py-2.5">
+                          Sick Leave
+                        </SelectItem>
+                        <SelectItem value="Paid" className="font-bold py-2.5">
+                          Paid Leave
+                        </SelectItem>
+                        <SelectItem value="Unpaid" className="font-bold py-2.5">
+                          Unpaid Leave
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage className="text-[10px] font-bold" />
                   </FormItem>
                 )}
               />
 
+              {/* Dates */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <FormField
                   control={form.control}
@@ -274,17 +428,13 @@ export default function ApplyForLeavePage() {
                             }
                             disabled={(date) => {
                               const fromDate = form.getValues("fromDate");
-
                               if (date < new Date("1900-01-01")) return true;
-
                               if (fromDate) {
                                 const from = new Date(fromDate);
                                 from.setHours(0, 0, 0, 0);
                                 date.setHours(0, 0, 0, 0);
-
                                 return date < from;
                               }
-
                               return false;
                             }}
                             initialFocus
@@ -305,7 +455,7 @@ export default function ApplyForLeavePage() {
                   <FormItem className="space-y-1.5">
                     <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mb-1">
                       <FileText className="h-3 w-3 text-[#2eb88a]" />
-                      Reason
+                      Reason for Leave
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -350,28 +500,29 @@ export default function ApplyForLeavePage() {
                   <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-start gap-3">
                     <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                     <p className="text-sm font-bold text-emerald-800 leading-tight">
-                      Your request has been recorded. Please download the form
-                      for your records.
+                      Your request has been recorded. Please print or download the official form below.
                     </p>
                   </div>
                   <div className="flex gap-3">
                     <Button
                       type="button"
                       onClick={() => window.print()}
-                      className="flex-1 bg-slate-900 hover:bg-slate-800 text-white h-12 rounded-xl font-bold flex items-center justify-center gap-2"
+                      className="flex-1 bg-slate-900 hover:bg-slate-800 text-white h-12 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10"
                     >
-                      <FileText className="h-4 w-4" />
-                      Print Form
+                      <Printer className="h-4 w-4" />
+                      Print Leave Application
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => {
                         setSubmittedData(null);
+                        setSelectedUserObjId("");
                         form.reset();
                       }}
-                      className="flex-1 border-slate-200 text-slate-600 h-12 rounded-xl font-bold"
+                      className="flex-1 border-slate-200 text-slate-600 h-12 rounded-xl font-bold flex items-center justify-center gap-2"
                     >
+                      <RotateCcw className="h-4 w-4" />
                       Apply New
                     </Button>
                   </div>
@@ -382,116 +533,141 @@ export default function ApplyForLeavePage() {
         </div>
       </Card>
 
-      {/* Printable Area - Hidden from Screen */}
-      <div className="hidden print:block fixed inset-0 bg-white p-10 z-[100]">
-        <div className="max-w-3xl mx-auto border-[3px] border-slate-900 p-10 rounded-none bg-white">
-          <div className="flex justify-between items-start border-b-[3px] border-slate-900 pb-8 mb-8">
-            <div>
-              <p className="text-[10px] font-black text-[#2eb88a] uppercase tracking-[0.3em] mb-1">
-                Goyal Enterprises
-              </p>
-              <h1 className="text-4xl font-black italic tracking-tighter text-slate-900 uppercase">
-                Leave Application Form
-              </h1>
-              <p className="text-slate-500 font-bold mt-1 uppercase tracking-widest text-xs">
-                GOEL ENTERPRISES • Employee Management System
-              </p>
+      {/* Official Leave Application Printable Area - Hidden from Screen */}
+      <div className="hidden print:block fixed inset-0 bg-white p-12 z-[100] text-black">
+        <div className="max-w-2xl mx-auto border-[1.5px] border-slate-400 p-8 rounded-none bg-white font-serif leading-relaxed text-slate-900">
+          {/* Header with Logo */}
+          <div className="mb-6">
+            <div className="relative w-48 h-16 mb-2">
+              <Image
+                src="/logo_ge.png"
+                alt="GOEL ENTERPRISES"
+                width={190}
+                height={64}
+                className="object-contain"
+                priority
+              />
             </div>
-            <div className="text-right">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                Application Date
-              </p>
-              <p className="text-lg font-black italic text-slate-900">
-                {format(new Date(), "dd MMM yyyy")}
-              </p>
-            </div>
+            <h1 className="text-xl font-bold tracking-wider text-center uppercase border-b-2 border-black pb-2 mt-4 font-sans">
+              LEAVE APPLICATION
+            </h1>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 mb-10">
-            <div className="space-y-6">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
-                  Employee ID
-                </p>
-                <p className="text-xl font-bold text-slate-900 border-b-2 border-slate-100 pb-2">
-                  {submittedData?.employeeId}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
-                  Employee Name
-                </p>
-                <p className="text-xl font-bold text-slate-900 border-b-2 border-slate-100 pb-2">
-                  {submittedData?.name}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
-                    From Date
-                  </p>
-                  <p className="text-lg font-bold text-slate-900 border-b-2 border-slate-100 pb-2">
-                    {submittedData?.fromDate
-                      ? format(new Date(submittedData.fromDate), "dd MMM yyyy")
-                      : "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
-                    To Date
-                  </p>
-                  <p className="text-lg font-bold text-slate-900 border-b-2 border-slate-100 pb-2">
-                    {submittedData?.toDate
-                      ? format(new Date(submittedData.toDate), "dd MMM yyyy")
-                      : "-"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-slate-50 p-6 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">
-                Status
-              </p>
-              <div className="bg-white px-4 py-2 rounded-lg border-2 border-slate-900 font-black italic text-slate-900 uppercase">
-                Pending Approval
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-12">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">
-              Reason for Leave
+          {/* Salutation & Body */}
+          <div className="space-y-4 text-sm mt-4">
+            <p className="font-bold">Dear Sir,</p>
+            <p className="leading-relaxed">
+              I am writing this application to request your approval for{" "}
+              <span className="inline-block border-b border-black font-bold px-4 text-center min-w-[60px]">
+                {leaveDays}
+              </span>{" "}
+              days of leave.
             </p>
-            <div className="p-6 bg-slate-50 rounded-2xl border-2 border-slate-100 min-h-[60px] flex items-center">
-              <p className="text-slate-800 font-bold italic text-xl uppercase tracking-tight">
-                {submittedData?.reason}
-              </p>
-            </div>
-            <p className="text-[9px] font-bold text-slate-400 mt-2 italic">
-              Leave Type: Sick
-            </p>
-          </div>
 
-          <div className="grid grid-cols-2 gap-20 pt-10 mt-10 border-t-2 border-slate-100 border-dashed">
-            <div className="text-center">
-              <div className="h-px bg-slate-900 w-full mb-3" />
-              <p className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">
-                Employee Signature
+            {/* Reason for leave */}
+            <div className="pt-2">
+              <p className="font-bold uppercase tracking-wider text-xs mb-1">
+                REASON FOR LEAVE:
               </p>
+              <div className="border-b border-black py-1 min-h-[24px] font-medium italic">
+                {submittedData?.reason || ""}
+              </div>
+              <div className="border-b border-black min-h-[20px] mt-1"></div>
             </div>
-            <div className="text-center">
-              <div className="h-px bg-slate-900 w-full mb-3" />
-              <p className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">
-                Authorized Signature
-              </p>
-            </div>
-          </div>
 
-          <div className="mt-20 pt-10 text-center border-t-2 border-slate-100">
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em]">
-              Form Generated via GOEL ENTERPRISES Cloud Terminal • Internal
-              Document ID: {docId}
+            {/* Leave Details */}
+            <div className="pt-3 space-y-2">
+              <p className="font-bold uppercase tracking-wider text-xs mb-2">
+                LEAVE DETAILS:
+              </p>
+              <div className="flex items-center text-sm">
+                <span className="font-bold w-40">Start Date of Leave:</span>
+                <span className="border-b border-black flex-1 pb-0.5 font-medium">
+                  {submittedData?.fromDate
+                    ? format(new Date(submittedData.fromDate), "dd-MM-yyyy")
+                    : ""}
+                </span>
+              </div>
+              <div className="flex items-center text-sm">
+                <span className="font-bold w-40">End Date of Leave:</span>
+                <span className="border-b border-black flex-1 pb-0.5 font-medium">
+                  {submittedData?.toDate
+                    ? format(new Date(submittedData.toDate), "dd-MM-yyyy")
+                    : ""}
+                </span>
+              </div>
+              <div className="flex items-center text-sm">
+                <span className="font-bold w-40">Date of Joining:</span>
+                <span className="border-b border-black flex-1 pb-0.5 font-medium">
+                  {submittedData?.toDate
+                    ? (() => {
+                        const nextDay = new Date(submittedData.toDate);
+                        nextDay.setDate(nextDay.getDate() + 1);
+                        return format(nextDay, "dd-MM-yyyy");
+                      })()
+                    : ""}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs pt-1">
+              I look forward to your approval and thank you for your consideration.
             </p>
+
+            {/* Employee Details */}
+            <div className="pt-3 space-y-2">
+              <p className="font-bold uppercase tracking-wider text-xs mb-2">
+                EMPLOYEE DETAILS:
+              </p>
+              <div className="flex items-center text-sm">
+                <span className="font-bold w-52">Name of Employee:</span>
+                <span className="border-b border-black flex-1 pb-0.5 font-medium">
+                  {submittedData?.name} {submittedData?.employeeId ? `(${submittedData.employeeId})` : ""}
+                </span>
+              </div>
+              <div className="flex items-center text-sm">
+                <span className="font-bold w-52">Department:</span>
+                <span className="border-b border-black flex-1 pb-0.5 font-medium">
+                  {submittedData?.departmentName || "—"}
+                </span>
+              </div>
+              <div className="flex items-center text-sm">
+                <span className="font-bold w-52">Date:</span>
+                <span className="border-b border-black flex-1 pb-0.5 font-medium">
+                  {format(new Date(), "dd-MM-yyyy")}
+                </span>
+              </div>
+              <div className="flex items-center text-sm">
+                <span className="font-bold w-52">Immediate Supervisor / In-charge:</span>
+                <span className="border-b border-black flex-1 pb-0.5"></span>
+              </div>
+            </div>
+
+            {/* For Office Use Only */}
+            <div className="pt-6 text-center">
+              <p className="font-bold uppercase tracking-wider text-xs mb-6">
+                FOR OFFICE USE ONLY
+              </p>
+              <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider pt-8 px-4">
+                <span>DEPT HEAD</span>
+                <span>HR</span>
+                <span>DIRECTOR</span>
+                <span>PLANT HEAD</span>
+              </div>
+            </div>
+
+            {/* Footer Metadata */}
+            <div className="pt-12 text-[10px] text-slate-600 flex justify-between items-end border-t border-slate-200 mt-8">
+              <div className="space-y-0.5">
+                <p>Doc: F-130-09</p>
+                <p>Issue: 1.0</p>
+                <p>Date: 16-08-2024</p>
+              </div>
+              <div className="space-y-0.5 text-right">
+                <p>Prepared By: HR</p>
+                <p>Approved By: PROPRIETOR</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -504,3 +680,4 @@ export default function ApplyForLeavePage() {
     </div>
   );
 }
+

@@ -221,15 +221,15 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       {!hideSearch && (searchKey || onSearchChange) && (
-        <div className="flex items-center justify-between py-4">
+        <div className="flex items-center justify-between gap-4 py-4 overflow-x-auto">
           <Input
             placeholder={searchPlaceholder}
             value={currentSearchValue}
             onChange={(event) => onSearchValueChange(event.target.value)}
             leftIcon={<Search className="h-4 w-4 text-slate-400" />}
-            className="max-w-sm border-slate-200 focus-visible:ring-emerald-500/20"
+            className="w-64 max-w-sm shrink-0 border-slate-200 focus-visible:ring-emerald-500/20"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {extraActions}
             <DataTableViewOptions table={table} />
           </div>

@@ -36,6 +36,7 @@ import { InfiniteScrollSelect } from "@/components/ui/infinite-scroll-select"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Vehicle } from "@/types/vehicle"
 import { fuelService } from "@/services/fuel-service"
+import { EmployeeSelect } from "@/components/employee/employee-select"
 import {
   Select,
   SelectContent,
@@ -47,6 +48,7 @@ import {
 const fuelFormSchema = z.object({
   fillingDate: z.string().min(1, "Date is required"),
   vehicleId: z.string().min(1, "Vehicle is required"),
+  employeeId: z.string().optional(),
   odometer: z.string().min(1, "Odometer reading is required").refine(val => !isNaN(parseFloat(val)), "Must be a number"),
   prevOdometer: z.string().optional(),
   fuelType: z.string().min(1, "Fuel type is required"),
@@ -55,6 +57,20 @@ const fuelFormSchema = z.object({
   images: z.array(z.instanceof(File)).optional(),
   average: z.string().optional(),
   totalFuel: z.string().min(1, "Total fuel is required").refine(val => !isNaN(parseFloat(val)), "Must be a number"),
+})
+
+const getEmptyFuelFormValues = (): FuelFormValues => ({
+  fillingDate: new Date().toISOString().substring(0, 10),
+  vehicleId: "",
+  employeeId: "",
+  odometer: "",
+  prevOdometer: "",
+  fuelType: "Diesel",
+  ratePerLtr: "",
+  totalAmount: "",
+  images: [],
+  average: "",
+  totalFuel: "",
 })
 
 export type FuelFormValues = z.infer<typeof fuelFormSchema>
@@ -92,29 +108,36 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
   const form = useForm<FuelFormValues>({
     resolver: zodResolver(fuelFormSchema),
     defaultValues: {
-      fillingDate: new Date().toISOString().substring(0, 10),
-      vehicleId: "",
-      odometer: "",
-      prevOdometer: "",
-      fuelType: "Diesel",
-      ratePerLtr: "",
-      totalAmount: "",
-      images: [],
-      average: "",
-      totalFuel: "",
+      ...getEmptyFuelFormValues(),
       ...initialValues,
     },
   })
 
-  // Update form when initialValues change
+  // Update form when open or initialValues change, and completely clear when closed
   React.useEffect(() => {
-    if (open && initialValues) {
-      form.reset({
-        ...form.getValues(),
-        ...initialValues,
-      })
+    if (open) {
+      if (initialValues) {
+        form.reset({
+          ...getEmptyFuelFormValues(),
+          ...initialValues,
+        })
+      } else {
+        form.reset(getEmptyFuelFormValues())
+        setVehicleSearch("")
+      }
+    } else {
+      form.reset(getEmptyFuelFormValues())
+      setVehicleSearch("")
     }
   }, [open, initialValues, form])
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      form.reset(getEmptyFuelFormValues())
+      setVehicleSearch("")
+    }
+    onOpenChange(newOpen)
+  }
 
   // Watch fields for calculations
   const images = form.watch("images")
@@ -148,6 +171,9 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
       if (selectedVehicleId) {
         const vehicle = vehicles.find(v => v._id === selectedVehicleId)
         if (vehicle) {
+          if (vehicle.fuelType) {
+            form.setValue("fuelType", vehicle.fuelType)
+          }
           setIsFetchingPrevOdo(true)
           try {
             const res = await fuelService.getAll({ 
@@ -220,6 +246,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
       const payload = {
         fillingDate: data.fillingDate,
         vehicleId: data.vehicleId,
+        employeeId: data.employeeId || undefined,
         odometer: parseFloat(data.odometer),
         fuelType: data.fuelType,
         ratePerLtr: parseFloat(data.ratePerLtr),
@@ -245,7 +272,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
   const isPending = createMutation.isPending || updateMutation.isPending
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>{editId ? "Edit Fuel Expense" : "Log Fuel Expense"}</DialogTitle>
@@ -305,7 +332,12 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
                       <FormControl>
                         <InfiniteScrollSelect<Vehicle>
                           value={field.value}
-                          onValueChange={(val) => field.onChange(val)}
+                          onValueChange={(val, item) => {
+                            field.onChange(val)
+                            if (item?.fuelType) {
+                              form.setValue("fuelType", item.fuelType)
+                            }
+                          }}
                           items={vehicles}
                           loadMore={fetchNextVehicles}
                           hasNextPage={hasNextVehicles}
@@ -366,13 +398,30 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
+                  name="employeeId"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Employee / Driver</FormLabel>
+                      <FormControl>
+                        <EmployeeSelect
+                          value={field.value}
+                          onValueChange={(val) => field.onChange(val)}
+                          placeholder="Select employee / driver"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="fuelType"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Fuel Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select fuel type" />
                           </SelectTrigger>
                         </FormControl>
@@ -385,6 +434,9 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="ratePerLtr"
@@ -404,9 +456,6 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="totalAmount"
@@ -426,6 +475,9 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="totalFuel"
@@ -446,7 +498,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
                   )}
                 />
                 <div>
-                  <label className="text-sm font-medium text-slate-500">Average (km/L)</label>
+                  <label className="text-sm font-medium text-slate-700">Average (km/L)</label>
                   <Input 
                     type="text" 
                     value={displayAverage}
@@ -510,7 +562,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
             </div>
             
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isPending}>
@@ -557,8 +609,23 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, in
         amount: initialValues?.amount !== undefined ? String(initialValues.amount) : "",
         note: initialValues?.note || "",
       })
+    } else {
+      form.reset({
+        amount: "",
+        note: "",
+      })
     }
   }, [open, initialValues, form])
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      form.reset({
+        amount: "",
+        note: "",
+      })
+    }
+    onOpenChange(newOpen)
+  }
 
   const onSubmit = async (data: BalanceFormValues) => {
     try {
@@ -587,7 +654,7 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, in
   const isPending = addBalanceMutation.isPending || updateBalanceMutation.isPending
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{editId ? "Edit PetroCard Balance" : "Add PetroCard Balance"}</DialogTitle>

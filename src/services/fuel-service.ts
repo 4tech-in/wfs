@@ -1,5 +1,5 @@
 import apiClient from '@/lib/api-client';
-import { FuelCardStats, FuelExpensesResponse, FuelQueryParams, CreateFuelDto, FuelCardsResponse } from '@/types/fuel';
+import { FuelCardStats, FuelExpensesResponse, FuelQueryParams, CreateFuelDto, FuelCardsResponse, FuelExportResponse } from '@/types/fuel';
 import { toast } from 'sonner';
 
 /**
@@ -25,6 +25,9 @@ export const fuelService = {
     try {
       const formData = new FormData();
       formData.append('vehicleId', data.vehicleId);
+      if (data.employeeId) {
+        formData.append('employeeId', data.employeeId);
+      }
       formData.append('odometer', String(data.odometer));
       formData.append('fuelType', data.fuelType);
       formData.append('ratePerLtr', String(data.ratePerLtr));
@@ -56,6 +59,9 @@ export const fuelService = {
     try {
       const formData = new FormData();
       formData.append('vehicleId', data.vehicleId);
+      if (data.employeeId) {
+        formData.append('employeeId', data.employeeId);
+      }
       formData.append('odometer', String(data.odometer));
       formData.append('fuelType', data.fuelType);
       formData.append('ratePerLtr', String(data.ratePerLtr));
@@ -152,6 +158,18 @@ export const fuelService = {
       toast.success('Card balance record deleted successfully');
     } catch (error: unknown) {
       toast.error('Failed to delete card balance record');
+      throw error;
+    }
+  },
+
+  /**
+   * Export fuel expenses
+   */
+  getExportData: async (params?: { vehicleId?: string; startDate?: string; endDate?: string; search?: string }): Promise<FuelExportResponse> => {
+    try {
+      return await apiClient.get<void, FuelExportResponse>('/fuel/export', { params: { ...params, format: 'json' } });
+    } catch (error: unknown) {
+      toast.error('Failed to export fuel data');
       throw error;
     }
   },

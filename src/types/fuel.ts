@@ -20,6 +20,13 @@ export interface FuelRecord {
     vehicleNo: string;
     vehicleCode: string;
   };
+  employeeId?: {
+    _id: string;
+    name: string;
+    otherName?: string;
+    uniqueId?: number;
+    employeeId?: string;
+  } | null;
 }
 
 export interface FuelExpensesResponse {
@@ -42,12 +49,22 @@ export interface FuelQueryParams {
   page?: number;
   limit?: number;
   search?: string;
+  vehicleId?: string;
+  startDate?: string;
+  endDate?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface FuelExportResponse {
+  success: boolean;
+  count: number;
+  data: FuelRecord[];
+}
+
 export interface CreateFuelDto {
   vehicleId: string;
+  employeeId?: string;
   odometer: number;
   fuelType: string;
   ratePerLtr: number;

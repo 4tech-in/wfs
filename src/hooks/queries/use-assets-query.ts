@@ -31,7 +31,7 @@ export function useCreateAssetMutation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (data: CreateAssetDto) => assetService.create(data),
+    mutationFn: (data: CreateAssetDto | CreateAssetDto[]) => assetService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.assets.all });
     },

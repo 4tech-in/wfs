@@ -48,30 +48,38 @@ export default function AssetTrackingPage() {
     const [isIssueOpen, setIsIssueOpen] = React.useState(false)
     const [editingAsset, setEditingAsset] = React.useState<Asset | null>(null)
 
-    const handleAdd = async (data: AssetFormValues) => {
+    const handleAdd = async (data: AssetFormValues | AssetFormValues[]) => {
         try {
-            const { setReminder, reminderFrequency, reminderTime, reminderStartDate, reminderInterval, recipientEmails, ...assetData } = data
+            const dataList = Array.isArray(data) ? data : [data]
             
-            // Convert empty strings to null for optional fields
-            const payload = Object.fromEntries(
-                Object.entries(assetData).map(([key, value]) => [key, value === "" ? null : value])
-            ) as unknown as CreateAssetDto
+            const payloads = dataList.map(item => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { setReminder, reminderFrequency, reminderTime, reminderStartDate, reminderInterval, recipientEmails, ...assetData } = item
+                return Object.fromEntries(
+                    Object.entries(assetData).map(([key, value]) => [key, value === "" ? null : value])
+                ) as unknown as CreateAssetDto
+            })
 
-            const createdAsset = await createMutation.mutateAsync(payload)
+            const createdResult = await createMutation.mutateAsync(payloads.length === 1 ? payloads[0] : payloads)
             
-            if (setReminder && createdAsset) {
-                const recipients = recipientEmails?.split(",").map(e => e.trim()).filter(Boolean)
-                await createReminderMutation.mutateAsync({
-                    title: `Maintenance: ${createdAsset.name}`,
-                    description: `Automated maintenance reminder for ${createdAsset.name} (${createdAsset.serialNumber})`,
-                    enabled: true,
-                    frequency: reminderFrequency,
-                    interval: reminderFrequency === "custom" ? (reminderInterval ? parseInt(reminderInterval) : 30) : undefined,
-                    startDate: reminderStartDate || new Date().toISOString(),
-                    time: reminderTime,
-                    recipientEmails: recipients,
-                    metadata: { assetId: createdAsset._id || createdAsset.id }
-                })
+            const firstItem = dataList[0]
+            if (firstItem?.setReminder && createdResult) {
+                const assetsList = Array.isArray(createdResult) ? createdResult : [createdResult]
+                const recipients = firstItem.recipientEmails?.split(",").map(e => e.trim()).filter(Boolean)
+                
+                for (const asset of assetsList) {
+                    await createReminderMutation.mutateAsync({
+                        title: `Maintenance: ${asset.name}`,
+                        description: `Automated maintenance reminder for ${asset.name} (${asset.serialNumber || 'N/A'})`,
+                        enabled: true,
+                        frequency: firstItem.reminderFrequency,
+                        interval: firstItem.reminderFrequency === "custom" ? (firstItem.reminderInterval ? parseInt(firstItem.reminderInterval) : 30) : undefined,
+                        startDate: firstItem.reminderStartDate || new Date().toISOString(),
+                        time: firstItem.reminderTime,
+                        recipientEmails: recipients,
+                        metadata: { assetId: asset._id || asset.id }
+                    })
+                }
             }
             
             setIsIssueOpen(false)

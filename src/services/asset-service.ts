@@ -16,12 +16,13 @@ import { toast } from 'sonner';
  */
 export const assetService = {
   /**
-   * Create a new asset
+   * Create a new asset (single or batch)
    */
-  create: async (data: CreateAssetDto): Promise<Asset> => {
+  create: async (data: CreateAssetDto | CreateAssetDto[]): Promise<any> => {
     try {
-      const response = await apiClient.post<{ data: Asset }, { data: Asset }>('/assets', data);
-      toast.success('Asset created successfully');
+      const response = await apiClient.post<typeof data, { data: any }>('/assets', data);
+      const count = Array.isArray(data) ? data.length : 1;
+      toast.success(count > 1 ? `${count} assets created successfully` : 'Asset created successfully');
       return response.data;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create asset';

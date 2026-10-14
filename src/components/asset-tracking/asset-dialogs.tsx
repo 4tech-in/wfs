@@ -14,22 +14,22 @@ import { ReminderFrequency } from "@/types/reminder"
 interface AddAssetDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAdd: (data: AssetFormValues) => void
+  onAdd: (data: AssetFormValues | AssetFormValues[]) => void
 }
 
 export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProps) {
-  const onSubmit = (data: AssetFormValues) => {
+  const onSubmit = (data: AssetFormValues | AssetFormValues[]) => {
     onAdd(data)
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Add New Asset</DialogTitle>
+      <DialogContent className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto custom-scrollbar p-6 rounded-[24px] shadow-2xl">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-xl font-bold text-slate-900">Add New Asset</DialogTitle>
         </DialogHeader>
-        <AssetForm onSubmit={onSubmit} />
+        {open && <AssetForm onSubmit={onSubmit} />}
       </DialogContent>
     </Dialog>
   )
@@ -46,23 +46,26 @@ interface EditAssetDialogProps {
 export function EditAssetDialog({ asset, open, onOpenChange, onUpdate, initialReminder }: EditAssetDialogProps) {
   if (!asset) return null
 
-  const onSubmit = (data: AssetFormValues) => {
-    onUpdate((asset._id || asset.id) as string, data)
+  const onSubmit = (data: AssetFormValues | AssetFormValues[]) => {
+    const singleData = Array.isArray(data) ? data[0] : data
+    onUpdate((asset._id || asset.id) as string, singleData)
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Update Asset Information</DialogTitle>
+      <DialogContent className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto custom-scrollbar p-6 rounded-[24px] shadow-2xl">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-xl font-bold text-slate-900">Update Asset Information</DialogTitle>
         </DialogHeader>
-        <AssetForm
-          initialValues={asset}
-          initialReminder={initialReminder}
-          onSubmit={onSubmit}
-          isEdit={true}
-        />
+        {open && (
+          <AssetForm
+            initialValues={asset}
+            initialReminder={initialReminder}
+            onSubmit={onSubmit}
+            isEdit={true}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )

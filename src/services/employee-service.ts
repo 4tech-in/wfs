@@ -170,9 +170,9 @@ export const employeeService = {
   /**
    * Restore a deleted employee
    */
-  restore: async (id: string): Promise<void> => {
+  restore: async (id: string, data?: { employeeObjId?: string }): Promise<void> => {
     try {
-      await apiClient.put<void, void>(`/user/restore-user/${id}`);
+      await apiClient.put<typeof data, void>(`/user/restore-user/${id}`, data);
       toast.success('Employee restored successfully');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to restore employee';

@@ -4,29 +4,47 @@ import * as React from "react"
 import { ArrowLeft, RefreshCw, Trash2, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { useDeletedEmployeesQuery, useRestoreEmployeeMutation } from "@/hooks/queries/use-employees-query"
+import { useDeletedEmployeesQuery } from "@/hooks/queries/use-employees-query"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Employee } from "@/types/employee"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
+import { RestoreEmployeeDialog } from "@/components/employee/restore-employee-dialog"
 
 type PopulatedField = { name: string; _id: string }
 
 export default function DeletedEmployeesPage() {
   const router = useRouter()
   const { data, isLoading, refetch, isFetching } = useDeletedEmployeesQuery()
-  const restoreMutation = useRestoreEmployeeMutation()
+  const [employeeToRestore, setEmployeeToRestore] = React.useState<Employee | null>(null)
 
   const columns: ColumnDef<Employee>[] = [
     {
       accessorKey: "employeeId",
       header: "ID",
-      cell: ({ row }) => (
-        <span className="font-bold text-[#2eb88a]">
-          {row.original.employeeObjId?.employeeId || "N/A"}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const empId = row.original.employeeObjId?.employeeId
+        const isAvail = row.original.isPreviousEmployeeIdAvailable
+        return (
+          <div className="flex flex-col gap-1 items-start">
+            <span className="font-bold text-[#2eb88a]">
+              {empId || "N/A"}
+            </span>
+            {empId && (
+              isAvail ? (
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-medium border border-emerald-100">
+                  ID Available
+                </span>
+              ) : (
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-50 text-rose-600 font-medium border border-rose-100">
+                  ID In Use
+                </span>
+              )
+            )}
+          </div>
+        )
+      },
     },
     {
       accessorKey: "uniqueId",
@@ -105,16 +123,8 @@ export default function DeletedEmployeesPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => {
-              const userId = row.original._id;
-              if (userId && confirm(`Are you sure you want to restore ${row.original.name}?`)) {
-                restoreMutation.mutate(userId, {
-                  onSuccess: () => refetch()
-                });
-              }
-            }}
-            disabled={restoreMutation.isPending}
-            className="h-8 w-8 rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-100 transition-all"
+            onClick={() => setEmployeeToRestore(row.original)}
+            className="h-8 w-8 rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-100 transition-all cursor-pointer"
             title="Restore Employee"
           >
             <RotateCcw className="h-4 w-4" />
@@ -168,6 +178,15 @@ export default function DeletedEmployeesPage() {
         showSrNo={true}
       />
 
+      {/* Interactive Restore Dialog */}
+      <RestoreEmployeeDialog
+        employee={employeeToRestore}
+        open={!!employeeToRestore}
+        onOpenChange={(open) => {
+          if (!open) setEmployeeToRestore(null)
+        }}
+        onSuccess={() => refetch()}
+      />
     </div>
   )
 }

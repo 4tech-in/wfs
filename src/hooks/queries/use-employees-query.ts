@@ -164,7 +164,12 @@ export function useRestoreEmployeeMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => employeeService.restore(id),
+    mutationFn: (variables: { id: string; employeeObjId?: string } | string) => {
+      if (typeof variables === "string") {
+        return employeeService.restore(variables);
+      }
+      return employeeService.restore(variables.id, { employeeObjId: variables.employeeObjId });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.users.all });
     },

@@ -85,6 +85,7 @@ export interface Employee {
     _id: string;
     employeeId: string;
   };
+  isPreviousEmployeeIdAvailable?: boolean;
   createdBy?: string;
   notes?: string;
   remarks?: string;

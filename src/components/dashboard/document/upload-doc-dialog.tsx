@@ -4,7 +4,7 @@ import * as React from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { CloudUpload, Loader2, X, FileText, Bell, Calendar as CalendarIcon } from "lucide-react"
+import { CloudUpload, Loader2, X, FileText, FileSpreadsheet, Bell, Calendar as CalendarIcon } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -259,7 +259,7 @@ export function UploadDocDialog({ trigger }: UploadDocDialogProps) {
                         className="hidden"
                         ref={fileInputRef}
                         onChange={handleFileChange}
-                        accept=".pdf,.doc,.docx,.jpg,.png"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.csv,.xlsx,.xls,.xlsm,.xlsb,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                         multiple
                       />
                       <div
@@ -271,22 +271,28 @@ export function UploadDocDialog({ trigger }: UploadDocDialogProps) {
                           Click to select files
                         </p>
                         <p className="text-[10px] text-slate-400 mt-1 uppercase font-black">
-                          PDF, DOC, JPG, PNG (Max 5MB)
+                          PDF, DOC, EXCEL, CSV, JPG, PNG (Max 5MB)
                         </p>
                       </div>
 
                       {selectedFiles.length > 0 && (
                         <div className="grid grid-cols-1 gap-2 max-h-[120px] overflow-y-auto pr-1">
-                          {selectedFiles.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                              <div className="flex items-center gap-3 overflow-hidden">
-                                <div className="h-8 w-8 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">
-                                  <FileText className="h-4 w-4 text-[#2eb88a]" />
+                          {selectedFiles.map((file, index) => {
+                            const isSpreadsheet = /\.(xlsx|xls|csv|xlsm|xlsb)$/i.test(file.name);
+                            return (
+                              <div key={index} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                  <div className="h-8 w-8 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">
+                                    {isSpreadsheet ? (
+                                      <FileSpreadsheet className="h-4 w-4 text-[#2eb88a]" />
+                                    ) : (
+                                      <FileText className="h-4 w-4 text-[#2eb88a]" />
+                                    )}
+                                  </div>
+                                  <span className="text-xs font-bold truncate text-slate-700">
+                                    {file.name}
+                                  </span>
                                 </div>
-                                <span className="text-xs font-bold truncate text-slate-700">
-                                  {file.name}
-                                </span>
-                              </div>
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -297,7 +303,8 @@ export function UploadDocDialog({ trigger }: UploadDocDialogProps) {
                                 <X className="h-4 w-4" />
                               </Button>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>

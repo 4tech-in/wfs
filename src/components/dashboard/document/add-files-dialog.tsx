@@ -4,7 +4,7 @@ import * as React from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { CloudUpload, Loader2, X, FileText, Plus } from "lucide-react"
+import { CloudUpload, Loader2, X, FileText, FileSpreadsheet, Plus } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -108,7 +108,7 @@ export function AddFilesDialog({ documentId, documentTitle, trigger }: AddFilesD
                         className="hidden"
                         ref={fileInputRef}
                         onChange={handleFileChange}
-                        accept=".pdf,.doc,.docx,.jpg,.png"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.csv,.xlsx,.xls,.xlsm,.xlsb,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                         multiple
                       />
                       <div
@@ -120,20 +120,26 @@ export function AddFilesDialog({ documentId, documentTitle, trigger }: AddFilesD
                           Click to select more files
                         </p>
                         <p className="text-xs text-slate-400 mt-1">
-                          PDF, DOC, JPG, PNG (Max 5MB per file)
+                          PDF, DOC, EXCEL, CSV, JPG, PNG (Max 5MB per file)
                         </p>
                       </div>
 
                       {selectedFiles.length > 0 && (
                         <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar w-full">
-                          {selectedFiles.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 w-full overflow-hidden">
-                              <div className="flex items-center gap-2 overflow-hidden">
-                                <FileText className="h-4 w-4 text-emerald-500 shrink-0" />
-                                <span className="text-xs font-medium truncate">
-                                  {file.name}
-                                </span>
-                              </div>
+                          {selectedFiles.map((file, index) => {
+                            const isSpreadsheet = /\.(xlsx|xls|csv|xlsm|xlsb)$/i.test(file.name);
+                            return (
+                              <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 w-full overflow-hidden">
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                  {isSpreadsheet ? (
+                                    <FileSpreadsheet className="h-4 w-4 text-emerald-500 shrink-0" />
+                                  ) : (
+                                    <FileText className="h-4 w-4 text-emerald-500 shrink-0" />
+                                  )}
+                                  <span className="text-xs font-medium truncate">
+                                    {file.name}
+                                  </span>
+                                </div>
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -144,7 +150,8 @@ export function AddFilesDialog({ documentId, documentTitle, trigger }: AddFilesD
                                 <X className="h-3 w-3" />
                               </Button>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>

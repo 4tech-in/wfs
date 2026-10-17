@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { DocumentItem } from "@/types/doc-center"
-import { FileText, Download, Trash, ExternalLink, Calendar } from "lucide-react"
+import { FileText, FileSpreadsheet, Download, Trash, ExternalLink, Calendar } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 
@@ -103,18 +103,24 @@ export function ViewDocDialog({ document: doc, open, onOpenChange, onDeleteFile 
             <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-1">
               {doc.files?.map((file, idx) => {
                 if (typeof file !== 'string') return null;
+                const ext = file.split('.').pop()?.toLowerCase() || "";
+                const isSpreadsheet = ["xlsx", "xls", "csv", "xlsm", "xlsb"].includes(ext);
                 return (
                   <div key={idx} className="group flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all">
                     <div className="flex items-center gap-3 overflow-hidden">
                       <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center border border-slate-100 shadow-sm shrink-0">
-                        <FileText className="h-5 w-5 text-emerald-600" />
+                        {isSpreadsheet ? (
+                          <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+                        ) : (
+                          <FileText className="h-5 w-5 text-emerald-600" />
+                        )}
                       </div>
                       <div className="flex flex-col overflow-hidden">
                         <span className="text-sm font-bold text-slate-700 truncate">
                           {file.split('/').pop() || "Unnamed File"}
                         </span>
                         <span className="text-[10px] font-black text-slate-400 uppercase">
-                          {file.split('.').pop()?.toUpperCase() || "Unknown"} File
+                          {ext ? `${ext.toUpperCase()} File` : "File"}
                         </span>
                       </div>
                     </div>

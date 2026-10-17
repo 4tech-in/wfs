@@ -24,11 +24,11 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { CreateAssetDto } from "@/types/asset"
-import { Employee } from "@/types/employee"
+import { Employee, EmployeeDropdownItem } from "@/types/employee"
 import { Textarea } from "@/components/ui/textarea"
 import { EmployeeSelect } from "@/components/employee/employee-select"
 import { EmployeeMultiSelect } from "@/components/employee/employee-multi-select"
-import { Check, X, Shirt, Users, Sparkles, Layers } from "lucide-react"
+import { Check, X, Shirt, Users, Sparkles, Layers, Minus, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const PREDEFINED_TYPES = [
@@ -104,6 +104,30 @@ export function AssetForm({
   // Uniform multi-select state (default: all 5 selected)
   const [selectedUniforms, setSelectedUniforms] = React.useState<string[]>([...UNIFORM_OPTIONS])
   const [uniformError, setUniformError] = React.useState<string | null>(null)
+
+  // Quantity per employee / quantity to create (default 1)
+  const [quantity, setQuantity] = React.useState<number>(1)
+
+  // Easy Naming: whether to append employee name to asset title (default: true)
+  const [includeEmpInName, setIncludeEmpInName] = React.useState<boolean>(true)
+
+  // Selected Employee objects map for easy naming
+  const [selectedEmployeeObjects, setSelectedEmployeeObjects] = React.useState<Map<string, EmployeeDropdownItem>>(() => {
+    const map = new Map<string, EmployeeDropdownItem>()
+    if (initialValues?.issuedTo && typeof initialValues.issuedTo === "object") {
+      const emp = initialValues.issuedTo as Employee
+      const id = emp._id || emp.id
+      if (id) {
+        map.set(id, {
+          _id: id,
+          name: emp.name,
+          employeeId: emp.employeeId || "",
+          uniqueId: emp.uniqueId,
+        })
+      }
+    }
+    return map
+  })
 
   // Multiple employees selection state (used in add mode)
   const [selectedEmployees, setSelectedEmployees] = React.useState<string[]>(() => {
@@ -184,6 +208,7 @@ export function AssetForm({
     if (initialValues && currentId !== prevAssetIdRef.current) {
       prevAssetIdRef.current = currentId
       form.reset(defaultValues)
+      setQuantity(1)
       if (initialValues.name && UNIFORM_OPTIONS.includes(initialValues.name as any)) {
         setSelectedUniforms([initialValues.name])
       }
@@ -214,16 +239,56 @@ export function AssetForm({
     setSelectedUniforms([])
   }
 
+  // Helper to format clean, easy-to-read asset names
+  const formatAssetName = React.useCallback(
+    (baseName: string, empName?: string, qIdx?: number, totalQ: number = 1): string => {
+      let result = baseName
+      if (includeEmpInName && empName) {
+        result = `${result} - ${empName}`
+      }
+      if (totalQ > 1 && qIdx !== undefined) {
+        result = `${result} (#${qIdx + 1})`
+      }
+      return result
+    },
+    [includeEmpInName]
+  )
+
+  // Sample employee name and asset name for live preview
+  const sampleEmpName = React.useMemo(() => {
+    if (selectedEmployees.length === 0) return ""
+    return selectedEmployeeObjects.get(selectedEmployees[0])?.name || "Employee"
+  }, [selectedEmployees, selectedEmployeeObjects])
+
+  const sampleBaseName = React.useMemo(() => {
+    if (selectedType === "Uniform") {
+      return selectedUniforms[0] || "Uniform"
+    }
+    return form.getValues("name") || selectedType || "Asset"
+  }, [selectedType, selectedUniforms, form])
+
+  const previewSample = React.useMemo(() => {
+    return formatAssetName(sampleBaseName, sampleEmpName, quantity > 1 ? 0 : undefined, quantity)
+  }, [formatAssetName, sampleBaseName, sampleEmpName, quantity])
+
   // Dynamic Batch Calculation Summary
   const calculationSummary = React.useMemo(() => {
     if (isEdit) return null
 
+    const empCount = selectedEmployees.length
+
     if (selectedType === "Uniform") {
       const itemsCount = selectedUniforms.length
-      const empCount = selectedEmployees.length
 
       if (itemsCount > 0 && empCount > 0) {
-        const total = itemsCount * empCount
+        const total = itemsCount * empCount * quantity
+        if (quantity > 1) {
+          return {
+            total,
+            text: `${itemsCount} Uniform Item${itemsCount > 1 ? "s" : ""} × ${quantity} per Person × ${empCount} Employee${empCount > 1 ? "s" : ""} = ${total} Total Assets`,
+            subtext: `Each employee will receive ${itemsCount * quantity} assets (${quantity} each of the ${itemsCount} selected uniform pieces).`,
+          }
+        }
         return {
           total,
           text: `${itemsCount} Uniform Items × ${empCount} Employees = ${total} Total Assets`,
@@ -231,24 +296,44 @@ export function AssetForm({
         }
       }
 
-      if (itemsCount > 1 && empCount === 0) {
-        return {
-          total: itemsCount,
-          text: `${itemsCount} Uniform Items will be created in inventory`,
-          subtext: "Items will be added as unassigned stock ready for future allocation.",
+      if (itemsCount > 0 && empCount === 0) {
+        const total = itemsCount * quantity
+        if (quantity > 1) {
+          return {
+            total,
+            text: `${itemsCount} Uniform Item${itemsCount > 1 ? "s" : ""} × ${quantity} each = ${total} Items will be created in inventory`,
+            subtext: "Items will be added as unassigned stock ready for future allocation.",
+          }
+        }
+        if (itemsCount > 1) {
+          return {
+            total: itemsCount,
+            text: `${itemsCount} Uniform Items will be created in inventory`,
+            subtext: "Items will be added as unassigned stock ready for future allocation.",
+          }
         }
       }
-    } else if (selectedEmployees.length > 1) {
-      const total = selectedEmployees.length
-      return {
-        total,
-        text: `${total} Assets will be generated (1 for each selected employee)`,
-        subtext: "Each employee will be assigned a distinct asset record.",
+    } else {
+      if (empCount > 0) {
+        const total = empCount * quantity
+        if (empCount > 1 || quantity > 1) {
+          return {
+            total,
+            text: `${empCount} Employee${empCount > 1 ? "s" : ""} × ${quantity} Asset${quantity > 1 ? "s" : ""} per Person = ${total} Total Assets`,
+            subtext: `Each selected employee will receive ${quantity} distinct asset record${quantity > 1 ? "s" : ""}.`,
+          }
+        }
+      } else if (quantity > 1) {
+        return {
+          total: quantity,
+          text: `${quantity} Assets will be created in inventory stock`,
+          subtext: "Items will be added as unassigned stock ready for future allocation.",
+        }
       }
     }
 
     return null
-  }, [isEdit, selectedType, selectedUniforms.length, selectedEmployees.length])
+  }, [isEdit, selectedType, selectedUniforms.length, selectedEmployees.length, quantity])
 
   // Dynamic Submit Button Label
   const submitButtonLabel = React.useMemo(() => {
@@ -293,27 +378,41 @@ export function AssetForm({
       const empList = selectedEmployees.length > 0 ? selectedEmployees : [undefined];
 
       empList.forEach((empId, empIdx) => {
-        selectedUniforms.forEach((uniformItem, itemIdx) => {
-          let serialSuffix = baseSerial;
-          if (baseSerial) {
-            serialSuffix = empList.length > 1 || selectedUniforms.length > 1
-              ? `${baseSerial}-${empIdx + 1}.${itemIdx + 1}`
-              : baseSerial;
-          } else {
-            serialSuffix = `UNF-${Date.now().toString().slice(-5)}${empIdx}${itemIdx}`;
-          }
+        const empName = empId ? selectedEmployeeObjects.get(empId)?.name : undefined;
+        const cleanEmpTag = empName ? empName.trim().split(" ")[0].toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5) : "";
 
-          itemsToCreate.push({
-            ...restOfData,
-            name: uniformItem,
-            type: "Uniform",
-            issuedTo: empId || undefined,
-            status: empId ? "Issued" : (data.status || "In Stock"),
-            serialNumber: serialSuffix,
-            issuedDate: data.issuedDate
-              ? new Date(data.issuedDate).toISOString()
-              : (empId ? new Date().toISOString() : undefined),
-          });
+        selectedUniforms.forEach((uniformItem, itemIdx) => {
+          for (let q = 0; q < quantity; q++) {
+            let serialSuffix = "";
+            const isBatch = empList.length > 1 || selectedUniforms.length > 1 || quantity > 1;
+            if (baseSerial) {
+              const parts = [baseSerial];
+              if (cleanEmpTag) parts.push(cleanEmpTag);
+              else if (empList.length > 1) parts.push(`E${empIdx + 1}`);
+              if (selectedUniforms.length > 1) parts.push(`I${itemIdx + 1}`);
+              if (quantity > 1) parts.push(String(q + 1));
+              serialSuffix = isBatch ? parts.join("-") : baseSerial;
+            } else {
+              const rand = Date.now().toString().slice(-4);
+              serialSuffix = cleanEmpTag
+                ? `UNF-${cleanEmpTag}-${rand}${q + 1}`
+                : `UNF-${rand}${empIdx + 1}${itemIdx + 1}${q + 1}`;
+            }
+
+            const formattedName = formatAssetName(uniformItem, empName, quantity > 1 ? q : undefined, quantity);
+
+            itemsToCreate.push({
+              ...restOfData,
+              name: formattedName,
+              type: "Uniform",
+              issuedTo: empId || undefined,
+              status: empId ? (data.status === "In Stock" ? "Issued" : data.status) : (data.status || "In Stock"),
+              serialNumber: serialSuffix,
+              issuedDate: data.issuedDate
+                ? new Date(data.issuedDate).toISOString()
+                : (empId ? new Date().toISOString() : undefined),
+            });
+          }
         });
       });
 
@@ -321,29 +420,54 @@ export function AssetForm({
       return;
     }
 
-    // 2. Non-Uniform Type with multiple employees selected in Add mode
-    if (!isEdit && selectedEmployees.length > 1) {
-      const itemsToCreate: AssetFormValues[] = selectedEmployees.map((empId, empIdx) => {
-        const serialSuffix = baseSerial
-          ? `${baseSerial}-${empIdx + 1}`
-          : `${actualType?.slice(0, 3).toUpperCase() || "AST"}-${Date.now().toString().slice(-5)}${empIdx}`;
+    // 2. Non-Uniform Type in Add mode (Multiple employees and/or Quantity > 1)
+    if (!isEdit && (selectedEmployees.length > 0 || quantity > 1)) {
+      const itemsToCreate: AssetFormValues[] = [];
+      const empList = selectedEmployees.length > 0 ? selectedEmployees : [undefined];
 
-        return {
-          ...restOfData,
-          name: data.name || "Asset",
-          type: actualType as string,
-          issuedTo: empId,
-          status: "Issued",
-          serialNumber: serialSuffix,
-          issuedDate: data.issuedDate ? new Date(data.issuedDate).toISOString() : new Date().toISOString(),
-        };
+      empList.forEach((empId, empIdx) => {
+        const empName = empId ? selectedEmployeeObjects.get(empId)?.name : undefined;
+        const cleanEmpTag = empName ? empName.trim().split(" ")[0].toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5) : "";
+
+        for (let q = 0; q < quantity; q++) {
+          const isBatch = empList.length > 1 || quantity > 1;
+          let serialSuffix = "";
+          if (baseSerial) {
+            const parts = [baseSerial];
+            if (cleanEmpTag) parts.push(cleanEmpTag);
+            else if (empList.length > 1) parts.push(`E${empIdx + 1}`);
+            if (quantity > 1) parts.push(String(q + 1));
+            serialSuffix = isBatch ? parts.join("-") : baseSerial;
+          } else {
+            const prefix = actualType?.slice(0, 3).toUpperCase() || "AST";
+            const rand = Date.now().toString().slice(-4);
+            serialSuffix = cleanEmpTag
+              ? `${prefix}-${cleanEmpTag}-${rand}${q + 1}`
+              : `${prefix}-${rand}${empIdx + 1}${q + 1}`;
+          }
+
+          const baseName = data.name || actualType || "Asset";
+          const formattedName = formatAssetName(baseName, empName, quantity > 1 ? q : undefined, quantity);
+
+          itemsToCreate.push({
+            ...restOfData,
+            name: formattedName,
+            type: actualType as string,
+            issuedTo: empId || undefined,
+            status: empId ? (data.status === "In Stock" ? "Issued" : data.status) : (data.status || "In Stock"),
+            serialNumber: serialSuffix,
+            issuedDate: data.issuedDate
+              ? new Date(data.issuedDate).toISOString()
+              : (empId ? new Date().toISOString() : undefined),
+          });
+        }
       });
 
-      onSubmit(itemsToCreate);
+      onSubmit(itemsToCreate.length === 1 ? itemsToCreate[0] : itemsToCreate);
       return;
     }
 
-    // 3. Standard single asset
+    // 3. Standard single asset (Edit mode)
     const singleIssuedTo = selectedEmployees.length === 1 ? selectedEmployees[0] : (data.issuedTo || undefined);
     const payload = {
       ...restOfData,
@@ -586,12 +710,122 @@ export function AssetForm({
             </div>
             <EmployeeMultiSelect
               values={selectedEmployees}
-              onValuesChange={(vals) => {
+              onValuesChange={(vals, emps) => {
                 setSelectedEmployees(vals)
                 form.setValue("issuedTo", vals[0] || "")
+                if (emps && emps.length > 0) {
+                  setSelectedEmployeeObjects((prev) => {
+                    const next = new Map(prev)
+                    emps.forEach((emp) => next.set(emp._id, emp))
+                    return next
+                  })
+                }
               }}
               placeholder="Search and select employee(s)... (leave empty for stock inventory)"
             />
+          </div>
+        )}
+
+        {/* Quantity per Person / Quantity to Create */}
+        {!isEdit && (
+          <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
+                  #
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-800">
+                    {selectedEmployees.length > 0 ? "Quantity per Person *" : "Quantity to Create *"}
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    {selectedEmployees.length > 0
+                      ? `Each selected employee (${selectedEmployees.length}) will receive ${quantity} asset${quantity > 1 ? "s" : ""} each.`
+                      : `Number of identical assets to create directly in stock inventory.`}
+                  </p>
+                </div>
+              </div>
+              {selectedEmployees.length > 0 && quantity > 1 && (
+                <Badge variant="outline" className="text-[11px] font-bold bg-indigo-50 text-indigo-700 border-indigo-200 shrink-0">
+                  {quantity} each / {selectedEmployees.length * (selectedType === "Uniform" ? selectedUniforms.length : 1) * quantity} total
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden shadow-2xs">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-none cursor-pointer"
+                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                  disabled={quantity <= 1}
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </Button>
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={quantity}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setQuantity(isNaN(val) || val < 1 ? 1 : Math.min(500, val));
+                  }}
+                  className="h-9 w-16 text-center font-bold border-0 focus-visible:ring-0 rounded-none text-slate-900 p-0"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-none cursor-pointer"
+                  onClick={() => setQuantity((prev) => Math.min(500, prev + 1))}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-1.5 pl-2 overflow-x-auto">
+                <span className="text-[11px] text-slate-400 font-medium mr-1 shrink-0">Quick:</span>
+                {[1, 2, 3, 5, 10].map((preset) => (
+                  <Button
+                    key={preset}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setQuantity(preset)}
+                    className={cn(
+                      "h-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      quantity === preset
+                        ? "bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 hover:text-white"
+                        : "bg-white text-slate-600 hover:bg-slate-50 border-slate-200"
+                    )}
+                  >
+                    {preset}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Easy Name formatting switch & live preview */}
+            {selectedEmployees.length > 0 && (
+              <div className="pt-2 border-t border-slate-200/70 mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-slate-700 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={includeEmpInName}
+                    onChange={(e) => setIncludeEmpInName(e.target.checked)}
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                  />
+                  <span>Add employee name to asset title for easy identification</span>
+                </label>
+                <div className="bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 text-[11px] flex items-center gap-1.5 shadow-2xs">
+                  <span className="text-slate-400 font-semibold uppercase text-[10px]">Preview:</span>
+                  <span className="font-bold text-indigo-600 truncate max-w-[220px]">{previewSample}</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -43,37 +43,17 @@ import { ElectricityBillMetadata } from "@/types/electricity-bill"
 const electricityBillSchema = z.object({
   accountName: z.string().min(1, "Account name is required"),
   accountNumber: z.string().min(1, "Account number is required"),
-  billDate: z.string().optional(),
-  dueDate: z.string().optional(),
   billFrom: z.string().optional(),
   billTo: z.string().optional(),
   months: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   connectedLoad: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   contractDemand: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   billPeriod: z.string().optional(),
-  oldReadingKwh: z.string().optional(),
-  newReadingKwh: z.string().optional(),
-  oldReadingKvah: z.string().optional(),
-  newReadingKvah: z.string().optional(),
   unitKwh: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   unitKvah: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  kwhKvahDiff: z.string().optional(),
   kwhKvahRatio: z.string().optional(),
   unitPriceBasic: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  consumptionCharges: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  fppca: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  edRate: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  ed: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  fixedCharges: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   powerFactor: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  mcTaxRate: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  mcTax: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  pfIncentive: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  regSurcharge: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  paymentRebate: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  sundryCharges: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  arrears: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  reversalOfArrear: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   totalAmount: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   adjPrevBill: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   acdInt: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
@@ -250,37 +230,17 @@ export function ElectricityBillFormDialog({
     defaultValues: {
       accountName: initialData?.accountName || defaultAccountName,
       accountNumber: initialData?.accountNumber || defaultAccountNumber,
-      billDate: "",
-      dueDate: "",
       billFrom: "",
       billTo: "",
       months: "",
       connectedLoad: "",
       contractDemand: "",
       billPeriod: "",
-      oldReadingKwh: initialData?.newReadingKwh || "",
-      newReadingKwh: "",
-      oldReadingKvah: initialData?.newReadingKvah || "",
-      newReadingKvah: "",
       unitKwh: "",
       unitKvah: "",
-      kwhKvahDiff: "",
       kwhKvahRatio: "",
       unitPriceBasic: "",
-      consumptionCharges: "",
-      fppca: "",
-      edRate: initialData?.edRate || "0.11",
-      ed: "",
-      fixedCharges: "",
       powerFactor: "",
-      mcTaxRate: initialData?.mcTaxRate || "0.12",
-      mcTax: "",
-      pfIncentive: "",
-      regSurcharge: "",
-      paymentRebate: "",
-      sundryCharges: "",
-      arrears: "",
-      reversalOfArrear: "",
       totalAmount: "",
       adjPrevBill: "",
       acdInt: "",
@@ -294,106 +254,30 @@ export function ElectricityBillFormDialog({
     },
   })
 
-  const watchedOldKwh = useWatch({ control: form.control, name: "oldReadingKwh" })
-  const watchedNewKwh = useWatch({ control: form.control, name: "newReadingKwh" })
-  const watchedOldKvah = useWatch({ control: form.control, name: "oldReadingKvah" })
-  const watchedNewKvah = useWatch({ control: form.control, name: "newReadingKvah" })
   const watchedUnitKwh = useWatch({ control: form.control, name: "unitKwh" })
   const watchedUnitKvah = useWatch({ control: form.control, name: "unitKvah" })
   const watchedUnitPriceBasic = useWatch({ control: form.control, name: "unitPriceBasic" })
-  const watchedConsum = useWatch({ control: form.control, name: "consumptionCharges" })
-  const watchedFppca = useWatch({ control: form.control, name: "fppca" })
-  const watchedEdRate = useWatch({ control: form.control, name: "edRate" })
-  const watchedEd = useWatch({ control: form.control, name: "ed" })
-  const watchedFixed = useWatch({ control: form.control, name: "fixedCharges" })
-  const watchedMcTaxRate = useWatch({ control: form.control, name: "mcTaxRate" })
-  const watchedMcTax = useWatch({ control: form.control, name: "mcTax" })
-  const watchedPfInc = useWatch({ control: form.control, name: "pfIncentive" })
-  const watchedRegSurch = useWatch({ control: form.control, name: "regSurcharge" })
-  const watchedRebate = useWatch({ control: form.control, name: "paymentRebate" })
-  const watchedSundry = useWatch({ control: form.control, name: "sundryCharges" })
-  const watchedArrears = useWatch({ control: form.control, name: "arrears" })
-  const watchedRevArr = useWatch({ control: form.control, name: "reversalOfArrear" })
   const watchedAcdInt = useWatch({ control: form.control, name: "acdInt" })
   const watchedAcd = useWatch({ control: form.control, name: "acd" })
   const watchedTotal = useWatch({ control: form.control, name: "totalAmount" })
 
-  // Auto-calculate Unit kWh
-  React.useEffect(() => {
-    const o = safeParse(watchedOldKwh)
-    const n = safeParse(watchedNewKwh)
-    if (watchedOldKwh && watchedNewKwh) {
-      form.setValue("unitKwh", (Math.max(0, n - o)).toString())
-    }
-  }, [watchedOldKwh, watchedNewKwh, form])
-
-  // Auto-calculate Unit kVAh
-  React.useEffect(() => {
-    const o = safeParse(watchedOldKvah)
-    const n = safeParse(watchedNewKvah)
-    if (watchedOldKvah && watchedNewKvah) {
-      form.setValue("unitKvah", (Math.max(0, n - o)).toString())
-    }
-  }, [watchedOldKvah, watchedNewKvah, form])
-
-  // Auto-calculate kWh/kVAh Diff & Ratio
+  // Auto-calculate kWh/kVAh Ratio
   React.useEffect(() => {
     const kwh = safeParse(watchedUnitKwh)
     const kvah = safeParse(watchedUnitKvah)
     if (kwh > 0 && kvah > 0) {
-      form.setValue("kwhKvahDiff", (kwh - kvah).toFixed(2))
       form.setValue("kwhKvahRatio", ((kwh / kvah) * 100).toFixed(2))
     }
   }, [watchedUnitKwh, watchedUnitKvah, form])
 
-  // Auto-calculate Consumption Charges
+  // Auto-calculate Total Amount from Unit kWh & Unit Price Basic if provided
   React.useEffect(() => {
     const kwh = safeParse(watchedUnitKwh)
     const unitPrice = safeParse(watchedUnitPriceBasic)
     if (kwh > 0 && unitPrice > 0) {
-      form.setValue("consumptionCharges", (kwh * unitPrice).toFixed(2))
+      form.setValue("totalAmount", (kwh * unitPrice).toFixed(2))
     }
   }, [watchedUnitKwh, watchedUnitPriceBasic, form])
-
-  // Auto-calculate ED
-  React.useEffect(() => {
-    const kwh = safeParse(watchedUnitKwh)
-    const rate = safeParse(watchedEdRate)
-    if (kwh > 0 && rate > 0) {
-      form.setValue("ed", (kwh * rate).toFixed(2))
-    }
-  }, [watchedUnitKwh, watchedEdRate, form])
-
-  // Auto-calculate MC Tax
-  React.useEffect(() => {
-    const kwh = safeParse(watchedUnitKwh)
-    const rate = safeParse(watchedMcTaxRate)
-    if (kwh > 0 && rate > 0) {
-      form.setValue("mcTax", (kwh * rate).toFixed(2))
-    }
-  }, [watchedUnitKwh, watchedMcTaxRate, form])
-
-  // Auto-calculate Total Amount
-  React.useEffect(() => {
-    const sum = (
-      safeParse(watchedConsum) +
-      safeParse(watchedFppca) +
-      safeParse(watchedEd) +
-      safeParse(watchedFixed) +
-      safeParse(watchedMcTax) +
-      safeParse(watchedRegSurch) +
-      safeParse(watchedSundry) +
-      safeParse(watchedArrears) -
-      safeParse(watchedPfInc) -
-      safeParse(watchedRebate) -
-      safeParse(watchedRevArr)
-    ).toFixed(2)
-    form.setValue("totalAmount", sum)
-  }, [
-    watchedConsum, watchedFppca, watchedEd, watchedFixed, watchedMcTax, 
-    watchedRegSurch, watchedSundry, watchedArrears, 
-    watchedPfInc, watchedRebate, watchedRevArr, form
-  ])
 
   // Auto-calculate Actual Paid Amount
   React.useEffect(() => {
@@ -417,7 +301,7 @@ export function ElectricityBillFormDialog({
   const onSubmit = async (values: ElectricityBillFormValues) => {
     try {
       const { files, accountName: acctName, accountNumber, ...restMeta } = values
-      const title = `Electricity Bill – ${acctName} – ${values.billDate || new Date().toLocaleDateString("en-IN")}`
+      const title = `Electricity Bill – ${acctName} – ${values.billFrom ? `${values.billFrom} to ${values.billTo || ""}` : new Date().toLocaleDateString("en-IN")}`
       await uploadMutation.mutateAsync({
         title,
         documentType: "Electricity",
@@ -470,9 +354,7 @@ export function ElectricityBillFormDialog({
 
               <section>
                 <SectionTitle icon={<CalendarIcon className="h-4 w-4" />} title="Dates & Period" />
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <DatePickerField control={form.control} name="billDate" label="Bill Date" />
-                  <DatePickerField control={form.control} name="dueDate" label="Due Date" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <DatePickerField control={form.control} name="billFrom" label="Bill From" />
                   <DatePickerField control={form.control} name="billTo" label="Bill To" />
                   <FormField control={form.control} name="months" render={({ field }) => (
@@ -498,99 +380,53 @@ export function ElectricityBillFormDialog({
                 <SectionTitle icon={<Gauge className="h-4 w-4" />} title="Consumption Details" />
                 
                 {/* kWh Row */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 rounded-xl border border-slate-100 bg-slate-50/30">
-                  <div className="col-span-full mb-1 flex items-center gap-2">
+                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/30 mb-6">
+                  <div className="mb-3 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">kWh Readings</span>
                   </div>
-                  <ChargeField control={form.control} name="oldReadingKwh" label="Old (kWh)" prefix="" />
-                  <ChargeField control={form.control} name="newReadingKwh" label="New (kWh)" prefix="" />
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ChargeField control={form.control} name="unitKwh" label="Unit (kWh)" prefix="" highlight="blue" />
-                    {(watchedOldKwh && watchedNewKwh) && (
-                      <p className="text-[10px] font-bold text-blue-500 italic px-1">
-                        ({watchedNewKwh} - {watchedOldKwh}) = {safeParse(watchedNewKwh) - safeParse(watchedOldKwh)}
-                      </p>
-                    )}
                   </div>
                 </div>
 
                 {/* kVAh Row */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/30">
-                  <div className="col-span-full mb-1 flex items-center gap-2">
+                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/30">
+                  <div className="mb-3 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">kVAh Readings</span>
                   </div>
-                  <ChargeField control={form.control} name="oldReadingKvah" label="Old (kVAh)" prefix="" />
-                  <ChargeField control={form.control} name="newReadingKvah" label="New (kVAh)" prefix="" />
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ChargeField control={form.control} name="unitKvah" label="Unit (kVAh)" prefix="" highlight="yellow" />
-                    {(watchedOldKvah && watchedNewKvah) && (
-                      <p className="text-[10px] font-bold text-yellow-600 italic px-1">
-                        ({watchedNewKvah} - {watchedOldKvah}) = {safeParse(watchedNewKvah) - safeParse(watchedOldKvah)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <ChargeField control={form.control} name="kwhKvahDiff" label="kWh-kVAh" prefix="" highlight="blue" allowNegative />
-                    {(watchedUnitKwh && watchedUnitKvah) && (
-                      <p className="text-[10px] font-bold text-blue-500 italic px-1">
-                        ({watchedUnitKwh} - {watchedUnitKvah}) = {safeParse(watchedUnitKwh) - safeParse(watchedUnitKvah)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <ChargeField control={form.control} name="kwhKvahRatio" label="kWh/kVAh Ratio" prefix="" suffix="%" highlight="blue" />
-                    {(watchedUnitKwh && watchedUnitKvah) && (
-                      <p className="text-[10px] font-bold text-blue-500 italic px-1">
-                        ({watchedUnitKwh} / {watchedUnitKvah}) × 100 = {((safeParse(watchedUnitKwh) / safeParse(watchedUnitKvah)) * 100).toFixed(2)}%
-                      </p>
-                    )}
+                    <div className="space-y-1">
+                      <ChargeField control={form.control} name="kwhKvahRatio" label="kWh/kVAh Ratio" prefix="" suffix="%" highlight="blue" />
+                      {(watchedUnitKwh && watchedUnitKvah) && (
+                        <p className="text-[10px] font-bold text-blue-500 italic px-1">
+                          ({watchedUnitKwh} / {watchedUnitKvah}) × 100 = {((safeParse(watchedUnitKwh) / safeParse(watchedUnitKvah)) * 100).toFixed(2)}%
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </section>
 
               <section>
                 <SectionTitle icon={<CreditCard className="h-4 w-4" />} title="Financials" />
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <ChargeField control={form.control} name="unitPriceBasic" label="Unit Price Basic" />
-                  <div className="space-y-1">
-                    <ChargeField control={form.control} name="consumptionCharges" label="Consumption Charges" />
-                    {(watchedUnitKwh && watchedUnitPriceBasic) && (
-                      <p className="text-[10px] font-bold text-slate-500 italic px-1">
-                        ({watchedUnitKwh} × {watchedUnitPriceBasic}) = {(safeParse(watchedUnitKwh) * safeParse(watchedUnitPriceBasic)).toFixed(2)}
-                      </p>
+                  <FormField
+                    control={form.control}
+                    name="powerFactor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={labelClass}>Power Factor</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="0.00" className={inputClass} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
-                  <ChargeField control={form.control} name="fppca" label="FPPCA" />
-                  <ChargeField control={form.control} name="edRate" label="ED Rate" />
-                  <div className="space-y-1">
-                    <ChargeField control={form.control} name="ed" label="ED" />
-                    {(watchedUnitKwh && watchedEdRate) && (
-                      <p className="text-[10px] font-bold text-slate-500 italic px-1">
-                        ({watchedUnitKwh} × {watchedEdRate}) = {(safeParse(watchedUnitKwh) * safeParse(watchedEdRate)).toFixed(2)}
-                      </p>
-                    )}
-                  </div>
-                  <ChargeField control={form.control} name="fixedCharges" label="Fix Charges" />
-                  <FormField control={form.control} name="powerFactor" render={({ field }) => (
-                    <FormItem><FormLabel className={labelClass}>Power Factor</FormLabel><FormControl><Input {...field} className={inputClass} /></FormControl></FormItem>
-                  )} />
-                  <ChargeField control={form.control} name="mcTaxRate" label="MC Tax Rate" />
-                  <div className="space-y-1">
-                    <ChargeField control={form.control} name="mcTax" label="MC Tax" />
-                    {(watchedUnitKwh && watchedMcTaxRate) && (
-                      <p className="text-[10px] font-bold text-slate-500 italic px-1">
-                        ({watchedUnitKwh} × {watchedMcTaxRate}) = {(safeParse(watchedUnitKwh) * safeParse(watchedMcTaxRate)).toFixed(2)}
-                      </p>
-                    )}
-                  </div>
-                  <ChargeField control={form.control} name="pfIncentive" label="P.F. Incentive" highlight="green" />
-                  <ChargeField control={form.control} name="regSurcharge" label="Regl. Surc" />
-                  <ChargeField control={form.control} name="paymentRebate" label="Payment Rebate" highlight="green" />
-                  <ChargeField control={form.control} name="sundryCharges" label="Sundry Charges" />
-                  <ChargeField control={form.control} name="arrears" label="Arrear - Reg" />
-                  <ChargeField control={form.control} name="reversalOfArrear" label="Reversal of Arrear" highlight="amber" />
+                  />
                 </div>
               </section>
 

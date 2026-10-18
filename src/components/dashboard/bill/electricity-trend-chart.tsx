@@ -59,7 +59,7 @@ export function ElectricityTrendChart({ currentAccountName }: { currentAccountNa
     [bills]
   )
 
-  const points = React.useMemo(() => {
+  const trend = React.useMemo(() => {
     const grouped = new Map<string, { total: number; count: number }>()
 
     bills.forEach((bill) => {
@@ -75,13 +75,32 @@ export function ElectricityTrendChart({ currentAccountName }: { currentAccountNa
       grouped.set(key, { total: current.total + value, count: current.count + 1 })
     })
 
-    return Array.from(grouped.entries())
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, value]) => ({
+    const sortedKeys = Array.from(grouped.keys()).sort()
+    const latestKey = sortedKeys.at(-1)
+    if (!latestKey) return { points: [], recordedMonthCount: 0 }
+
+    const [latestYear, latestMonth] = latestKey.split("-").map(Number)
+    const timeline = Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(latestYear, latestMonth - 1 - (11 - index), 1)
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+    })
+
+    return {
+      recordedMonthCount: grouped.size,
+      points: timeline.map((key) => {
+        const value = grouped.get(key)
+        return {
         label: formatMonth(key),
-        value: metric === "unitPriceBasic" ? value.total / value.count : value.total,
-      }))
+          value: value
+            ? metric === "unitPriceBasic" ? value.total / value.count : value.total
+            : 0,
+          hasBill: Boolean(value),
+        }
+      }),
+    }
   }, [account, bills, metric])
+
+  const points = trend.points
 
   const metricConfig = METRICS[metric]
   const formatter = React.useCallback(
@@ -116,7 +135,17 @@ export function ElectricityTrendChart({ currentAccountName }: { currentAccountNa
       labels: { formatter, style: { colors: ["#64748b"], fontWeight: 600 } },
     },
     tooltip: { y: { formatter } },
-    markers: { size: 4, strokeWidth: 3, hover: { size: 6 } },
+    markers: {
+      size: 0,
+      hover: { size: 6 },
+      discrete: points.flatMap((point, index) => point.hasBill ? [{
+        seriesIndex: 0,
+        dataPointIndex: index,
+        fillColor: metricConfig.color,
+        strokeColor: "#ffffff",
+        size: 5,
+      }] : []),
+    },
     noData: { text: "No trend data available", align: "center", verticalAlign: "middle" },
   }), [formatter, metricConfig.color, points])
 
@@ -129,7 +158,10 @@ export function ElectricityTrendChart({ currentAccountName }: { currentAccountNa
           </div>
           <div>
             <h2 className="text-base font-black text-slate-900">Electricity Bill Trends</h2>
-            <p className="text-xs font-medium text-slate-500">Monthly account performance</p>
+            <p className="text-xs font-medium text-slate-500">Monthly account performance · Last 12 months</p>
+            {trend.recordedMonthCount === 1 && (
+              <p className="mt-1 text-[10px] font-bold text-amber-600">Only one billed month exists; months without bills are shown as zero.</p>
+            )}
           </div>
         </div>
 

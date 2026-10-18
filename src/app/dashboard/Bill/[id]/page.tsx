@@ -278,10 +278,6 @@ export default function BillDetailPage() {
             <StatCard label="Unit Rate" value={meta?.paidUnitRate} prefix="₹" highlight="amber" />
           </div>
 
-          {billData.documentType === "Electricity" && (
-            <ElectricityTrendChart currentAccountName={meta?.accountName} />
-          )}
-
           {/* Average Billing Notice */}
           {isAnyAvg && (
             <div className="p-6 rounded-3xl bg-amber-50/50 border border-amber-100 flex items-center gap-5">
@@ -407,6 +403,10 @@ export default function BillDetailPage() {
               )}
             </div>
           </div>
+
+          {billData.documentType === "Electricity" && (
+            <ElectricityTrendChart currentAccountName={meta?.accountName} />
+          )}
 
           {/* Files Section */}
           {bill.files && bill.files.length > 0 && (

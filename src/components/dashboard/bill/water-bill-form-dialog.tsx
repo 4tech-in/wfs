@@ -11,12 +11,9 @@ import {
   Droplets, 
   Building2, 
   Calendar as CalendarIcon, 
-  CreditCard,
   History,
   Zap,
-  Gauge,
-  Calculator,
-  Percent
+  Gauge
 } from "lucide-react"
 import {
   Dialog,
@@ -40,6 +37,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { useUploadDocMutation } from "@/hooks/queries/use-doc-center"
+import { useSavedBillAccounts } from "@/hooks/use-saved-bill-accounts"
+import { SavedAccountField } from "./saved-account-field"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { format, parseISO, isValid } from "date-fns"
@@ -48,33 +47,14 @@ import { WaterBillMetadata } from "@/types/water-bill"
 const waterBillSchema = z.object({
   accountName: z.string().min(1, "Account name is required"),
   accountNumber: z.string().min(1, "Account number is required"),
-  billDate: z.string().optional(),
-  dueDate: z.string().optional(),
   billFrom: z.string().optional(),
   billTo: z.string().optional(),
   isFromAverage: z.boolean().optional(),
   isToAverage: z.boolean().optional(),
   connectionSize: z.string().optional(),
   billPeriod: z.string().optional(),
-  oldReading: z.string().optional(),
-  newReading: z.string().optional(),
-  actualReading: z.string().optional(),
   unit: z.string().optional(),
-  costPerUnit: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  currentWaterCharges: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  maintenanceCharges: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  sewerageCess: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  sewerageCessPercentage: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  meterRentals: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  garbageCharges: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  sundryCharges: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  arrears: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   totalAmount: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  adjPrevBill: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  mcTax: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  latePaymentSurcharge: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  paidAmount: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  paidOn: z.string().optional(),
   paidUnitRate: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   unitRemarks: z.string().optional(),
   remarks: z.string().optional(),
@@ -245,39 +225,21 @@ export function WaterBillFormDialog({
   const [open, setOpen] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const uploadMutation = useUploadDocMutation()
+  const { accountNames, accountNumbers, saveAccountName, saveAccountNumber } = useSavedBillAccounts()
 
   const form = useForm<WaterBillFormValues>({
     resolver: zodResolver(waterBillSchema),
     defaultValues: {
       accountName: initialData?.accountName || defaultAccountName,
       accountNumber: initialData?.accountNumber || defaultAccountNumber,
-      billDate: "",
-      dueDate: "",
       billFrom: "",
       billTo: "",
       isFromAverage: false,
       isToAverage: false,
       connectionSize: "",
       billPeriod: "",
-      oldReading: initialData?.newReading || "",
-      newReading: "",
-      actualReading: "",
       unit: "",
-      costPerUnit: "",
-      currentWaterCharges: "",
-      maintenanceCharges: "",
-      sewerageCess: "",
-      sewerageCessPercentage: "30",
-      meterRentals: "",
-      garbageCharges: "",
-      sundryCharges: "",
-      arrears: "",
       totalAmount: "",
-      adjPrevBill: "",
-      mcTax: "",
-      latePaymentSurcharge: "",
-      paidAmount: "",
-      paidOn: "",
       paidUnitRate: "",
       unitRemarks: "",
       remarks: "",
@@ -286,121 +248,23 @@ export function WaterBillFormDialog({
   })
 
   // Destructure watched values for reactivity
-  const watchedOldReading = useWatch({ control: form.control, name: "oldReading" })
-  const watchedNewReading = useWatch({ control: form.control, name: "newReading" })
   const watchedUnit = useWatch({ control: form.control, name: "unit" })
-  const watchedConnSize = useWatch({ control: form.control, name: "connectionSize" })
-  const watchedWaterCharges = useWatch({ control: form.control, name: "currentWaterCharges" })
-  const watchedSeweragePercentage = useWatch({ control: form.control, name: "sewerageCessPercentage" })
-  const watchedMaintenance = useWatch({ control: form.control, name: "maintenanceCharges" })
-  const watchedSewerageCess = useWatch({ control: form.control, name: "sewerageCess" })
-  const watchedMeterRental = useWatch({ control: form.control, name: "meterRentals" })
-  const watchedGarbage = useWatch({ control: form.control, name: "garbageCharges" })
-  const watchedSundry = useWatch({ control: form.control, name: "sundryCharges" })
-  const watchedArrears = useWatch({ control: form.control, name: "arrears" })
   const watchedTotal = useWatch({ control: form.control, name: "totalAmount" })
-  const watchedPaid = useWatch({ control: form.control, name: "paidAmount" })
-  const watchedMcTax = useWatch({ control: form.control, name: "mcTax" })
-  const watchedLatePayment = useWatch({ control: form.control, name: "latePaymentSurcharge" })
-  const watchedAdjPrevBill = useWatch({ control: form.control, name: "adjPrevBill" })
   const watchedIsFromAvg = useWatch({ control: form.control, name: "isFromAverage" })
   const watchedIsToAvg = useWatch({ control: form.control, name: "isToAverage" })
   const watchedFiles = useWatch({ control: form.control, name: "files" })
 
   const selectedFiles = watchedFiles ?? []
 
-  const lastCalcUnitRef = React.useRef<string>("")
-  const lastCalcChargesRef = React.useRef<string>("")
-  const lastCalcSewerageRef = React.useRef<string>("")
-  const lastCalcTotalRef = React.useRef<string>("")
   const lastCalcPaidRateRef = React.useRef<string>("")
 
-  // 1. Auto-calculate UNIT = New Reading - Old Reading
+  // Auto-calculate Effective Rate (UNIT in Totals Section) = Total / UNIT
   React.useEffect(() => {
-    const oldR = safeParse(watchedOldReading)
-    const newR = safeParse(watchedNewReading)
-    if (watchedNewReading || watchedOldReading) {
-      const calculated = Math.max(0, newR - oldR).toString()
-      if (calculated !== lastCalcUnitRef.current) {
-        form.setValue("unit", calculated)
-        lastCalcUnitRef.current = calculated
-      }
-    }
-  }, [watchedOldReading, watchedNewReading, form])
-
-  // 2. Auto-calculate CURRENT WATER CHARGES = Conn. Size * UNIT
-  React.useEffect(() => {
-    const u = safeParse(watchedUnit)
-    const sizeStr = watchedConnSize?.replace(/[^0-9.]/g, '') || "0"
-    const size = safeParse(sizeStr)
-    
-    if (u > 0 && size > 0) {
-      const calculated = (u * size).toFixed(2)
-      if (calculated !== lastCalcChargesRef.current) {
-        form.setValue("currentWaterCharges", calculated)
-        lastCalcChargesRef.current = calculated
-      }
-    }
-  }, [watchedUnit, watchedConnSize, form])
-
-  // 3. Auto-calculate SEWERAGE CESS = Water Charges * Percentage
-  React.useEffect(() => {
-    const wc = safeParse(watchedWaterCharges)
-    const pct = safeParse(watchedSeweragePercentage)
-    
-    if (wc > 0 && pct > 0) {
-      const calculated = (wc * (pct / 100)).toFixed(2)
-      if (calculated !== lastCalcSewerageRef.current) {
-        form.setValue("sewerageCess", calculated)
-        lastCalcSewerageRef.current = calculated
-      }
-    }
-  }, [watchedWaterCharges, watchedSeweragePercentage, form])
-
-  // 4. Auto-calculate TOTAL AMOUNT
-  React.useEffect(() => {
-    const sum = Math.max(0, (
-      safeParse(watchedWaterCharges) +
-      safeParse(watchedMaintenance) +
-      safeParse(watchedSewerageCess) +
-      safeParse(watchedMeterRental) +
-      safeParse(watchedGarbage) +
-      safeParse(watchedSundry) +
-      safeParse(watchedArrears) +
-      safeParse(watchedLatePayment) +
-      safeParse(watchedMcTax) -
-      safeParse(watchedAdjPrevBill)
-    )).toFixed(2)
-
-    if (sum !== lastCalcTotalRef.current) {
-      form.setValue("totalAmount", sum)
-      lastCalcTotalRef.current = sum
-    }
-  }, [
-    watchedWaterCharges,
-    watchedMaintenance,
-    watchedSewerageCess,
-    watchedMeterRental,
-    watchedGarbage,
-    watchedSundry,
-    watchedArrears,
-    watchedLatePayment,
-    watchedMcTax,
-    watchedAdjPrevBill,
-    form
-  ])
-
-  // 5. Auto-calculate Effective Rate (UNIT in Totals Section) = (Paid || Total) / UNIT
-  React.useEffect(() => {
-    const paid = safeParse(watchedPaid)
     const total = safeParse(watchedTotal)
     const u = safeParse(watchedUnit)
-    
-    // We use either Paid Amount or Total Amount as the base for the rate calculation
-    const baseValue = paid > 0 ? paid : total
 
-    if (u > 0 && baseValue > 0) {
-      const calculated = (baseValue / u).toFixed(4)
+    if (u > 0 && total > 0) {
+      const calculated = (total / u).toFixed(4)
       if (calculated !== lastCalcPaidRateRef.current) {
         form.setValue("paidUnitRate", calculated)
         lastCalcPaidRateRef.current = calculated
@@ -411,15 +275,7 @@ export function WaterBillFormDialog({
         lastCalcPaidRateRef.current = "0.0000"
       }
     }
-  }, [watchedPaid, watchedTotal, watchedUnit, form])
-
-  // 6. Sync Cost Per Unit badge value to form state
-  React.useEffect(() => {
-    const cpu = ((safeParse(watchedWaterCharges) / safeParse(watchedUnit || "1")) || 0).toFixed(2)
-    if (cpu !== lastCalcChargesRef.current + "_cpu") { // using a dummy suffix for ref check or just sync
-      form.setValue("costPerUnit", cpu)
-    }
-  }, [watchedWaterCharges, watchedUnit, form])
+  }, [watchedTotal, watchedUnit, form])
 
   const onSubmit = async (values: WaterBillFormValues) => {
     try {
@@ -435,7 +291,7 @@ export function WaterBillFormDialog({
       }
 
       const title = `Water Bill – ${acctName || "Account"} – ${
-        values.billDate || new Date().toLocaleDateString("en-IN")
+        values.billFrom || new Date().toLocaleDateString("en-IN")
       }`
       await uploadMutation.mutateAsync({
         title,
@@ -443,6 +299,8 @@ export function WaterBillFormDialog({
         files: files && files.length > 0 ? files : [],
         metadata,
       })
+      saveAccountName(acctName)
+      saveAccountNumber(accountNumber)
       toast.success("Water bill saved successfully!")
       setOpen(false)
       form.reset()
@@ -472,6 +330,11 @@ export function WaterBillFormDialog({
     form.setValue("isToAverage", true)
     form.setValue("billFrom", "")
     form.setValue("billTo", "")
+  }
+
+  const saveDropdownValue = (value: string, save: (value: string) => boolean, label: string) => {
+    if (save(value)) toast.success(`${label} saved`)
+    else toast.error(`Enter ${label.toLowerCase()}`)
   }
 
   return (
@@ -511,9 +374,14 @@ export function WaterBillFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className={labelClass}>Account Name *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. Main Office" {...field} value={field.value ?? ""} className={inputClass} />
-                        </FormControl>
+                        <SavedAccountField
+                          value={field.value ?? ""}
+                          options={accountNames}
+                          placeholder="e.g. Main Office"
+                          inputClassName={inputClass}
+                          onChange={field.onChange}
+                          onSave={(value) => saveDropdownValue(value, saveAccountName, "Account name")}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -524,9 +392,14 @@ export function WaterBillFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className={labelClass}>Connection ID *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. WC-0012" {...field} value={field.value ?? ""} className={inputClass} />
-                        </FormControl>
+                        <SavedAccountField
+                          value={field.value ?? ""}
+                          options={accountNumbers}
+                          placeholder="e.g. WC-0012"
+                          inputClassName={inputClass}
+                          onChange={field.onChange}
+                          onSave={(value) => saveDropdownValue(value, saveAccountNumber, "Connection ID")}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -550,10 +423,7 @@ export function WaterBillFormDialog({
                   </Button>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                  <DatePickerField control={form.control} name="billDate" label="Bill Date" placeholder="Pick date" />
-                  <DatePickerField control={form.control} name="dueDate" label="Due Date" placeholder="Pick date" className="border-rose-100" />
-                  
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                   <div className="space-y-3">
                     <DatePickerField 
                       control={form.control} 
@@ -612,7 +482,7 @@ export function WaterBillFormDialog({
                 {/* Sub-section for Consumption Details */}
                 <div className="mt-8">
                   <SectionTitle icon={<Gauge className="h-4 w-4" />} title="Consumption Details" />
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
                       name="connectionSize"
@@ -647,48 +517,6 @@ export function WaterBillFormDialog({
                         </FormItem>
                       )}
                     />
-                     <FormField
-                      control={form.control}
-                      name="oldReading"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className={labelClass}>Old Reading</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              min="0" 
-                              onKeyDown={blockNegativeKeys}
-                              placeholder="0" 
-                              {...field} 
-                              value={field.value ?? ""} 
-                              className={inputClass} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="newReading"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className={labelClass}>New Reading</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              min="0" 
-                              onKeyDown={blockNegativeKeys}
-                              placeholder="0" 
-                              {...field} 
-                              value={field.value ?? ""} 
-                              className={inputClass} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     <FormField
                       control={form.control}
                       name="unit"
@@ -714,103 +542,12 @@ export function WaterBillFormDialog({
                 </div>
               </section>
 
-              {/* Financials Section */}
-              <section>
-                <div className="flex items-center justify-between mb-5">
-                   <SectionTitle icon={<CreditCard className="h-4 w-4" />} title="Financials" />
-                   <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 shadow-sm">
-                        <Calculator className="h-3.5 w-3.5 text-blue-500" />
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Cost Per Unit:</span>
-                        <span className="text-sm font-black text-blue-700">₹{((safeParse(watchedWaterCharges) / safeParse(watchedUnit || "1")) || 0).toFixed(2)}</span>
-                      </div>
-                   </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6">
-                  <ChargeField control={form.control} name="currentWaterCharges" label="CURRENT WATER CHARGES" />
-                  <ChargeField control={form.control} name="maintenanceCharges" label="Maintenance charges" />
-                  
-                  {/* Sewerage Cess with Percentage Input */}
-                  <div className="col-span-1 flex flex-col gap-1">
-                    <div className="flex items-center justify-between mb-1">
-                       <FormLabel className={labelClass}>Sewerage Cess</FormLabel>
-                       <div className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                          <Percent className="h-2.5 w-2.5 text-slate-400" />
-                          <input 
-                            type="number" 
-                            min="0"
-                            onKeyDown={blockNegativeKeys}
-                            {...form.register("sewerageCessPercentage")}
-                            className="w-8 bg-transparent text-[10px] font-black text-slate-600 outline-none border-none p-0 h-auto"
-                          />
-                       </div>
-                    </div>
-                    <FormField
-                      control={form.control}
-                      name="sewerageCess"
-                      render={({ field }) => (
-                        <FormControl>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">₹</span>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              placeholder="0.00"
-                              {...field}
-                              onKeyDown={blockNegativeKeys}
-                              value={(field.value as string) ?? ""}
-                              className={cn(inputClass, "pl-7")}
-                            />
-                          </div>
-                        </FormControl>
-                      )}
-                    />
-                  </div>
-
-                  <ChargeField control={form.control} name="meterRentals" label="Meter Rental" />
-                  <ChargeField control={form.control} name="garbageCharges" label="GARBAGE CHARGES" />
-                  <ChargeField control={form.control} name="sundryCharges" label="SUNDRY CHARGES" />
-                  <ChargeField control={form.control} name="arrears" label="Arrears" />
-                </div>
-              </section>
-
               {/* Totals Section */}
               <section className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                 <SectionTitle icon={<History className="h-4 w-4" />} title="Final Totals & Payment" />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <ChargeField control={form.control} name="totalAmount" label="Total Amount" highlight="blue" />
-                  <ChargeField control={form.control} name="latePaymentSurcharge" label="LATE PAYMENT SURCHARGE" />
-                  <ChargeField control={form.control} name="adjPrevBill" label="ADJ PREV BILL" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                   <ChargeField control={form.control} name="mcTax" label="MC Tax" />
-                   <ChargeField control={form.control} name="paidUnitRate" label="UNIT" highlight="amber" prefix="₹" />
-                   <FormField
-                    control={form.control}
-                    name="actualReading"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className={labelClass}>Actual Reading</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="0" 
-                            onKeyDown={blockNegativeKeys}
-                            placeholder="0" 
-                            {...field} 
-                            value={field.value ?? ""} 
-                            className={inputClass} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200/60">
-                  <ChargeField control={form.control} name="paidAmount" label="Paid Amount" highlight="green" />
-                  <DatePickerField control={form.control} name="paidOn" label="Paid On" placeholder="Pick date" />
+                  <ChargeField control={form.control} name="paidUnitRate" label="UNIT" highlight="amber" prefix="₹" />
                 </div>
               </section>
 

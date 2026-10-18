@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { WaterBillFormDialog } from "@/components/dashboard/bill/water-bill-form-dialog"
+import { ElectricityTrendChart } from "@/components/dashboard/bill/electricity-trend-chart"
 import { useSingleDocQuery, useDeleteDocMutation } from "@/hooks/queries/use-doc-center"
 import { WaterBillRecord, WaterBillMetadata } from "@/types/water-bill"
 import { cn } from "@/lib/utils"
@@ -276,6 +277,10 @@ export default function BillDetailPage() {
             <StatCard label="Pending Balance" value={String(safeParse(meta?.totalAmount) - safeParse(meta?.paidAmount))} prefix="₹" highlight={isPaid ? undefined : "amber"} />
             <StatCard label="Unit Rate" value={meta?.paidUnitRate} prefix="₹" highlight="amber" />
           </div>
+
+          {billData.documentType === "Electricity" && (
+            <ElectricityTrendChart currentAccountName={meta?.accountName} />
+          )}
 
           {/* Average Billing Notice */}
           {isAnyAvg && (

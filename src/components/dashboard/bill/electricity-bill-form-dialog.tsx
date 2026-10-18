@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { 
   CloudUpload, 
+  X,
   Loader2, 
   Plus, 
   Zap, 
@@ -35,6 +36,8 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { useUploadDocMutation } from "@/hooks/queries/use-doc-center"
+import { useSavedBillAccounts } from "@/hooks/use-saved-bill-accounts"
+import { SavedAccountField } from "./saved-account-field"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { format, parseISO, isValid } from "date-fns"
@@ -223,7 +226,9 @@ export function ElectricityBillFormDialog({
   initialData,
 }: ElectricityBillFormDialogProps) {
   const [open, setOpen] = React.useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
   const uploadMutation = useUploadDocMutation()
+  const { accountNames, accountNumbers, saveAccountName, saveAccountNumber } = useSavedBillAccounts()
 
   const form = useForm<ElectricityBillFormValues>({
     resolver: zodResolver(electricityBillSchema),
@@ -260,6 +265,8 @@ export function ElectricityBillFormDialog({
   const watchedAcdInt = useWatch({ control: form.control, name: "acdInt" })
   const watchedAcd = useWatch({ control: form.control, name: "acd" })
   const watchedTotal = useWatch({ control: form.control, name: "totalAmount" })
+  const watchedFiles = useWatch({ control: form.control, name: "files" })
+  const selectedFiles = watchedFiles ?? []
 
   // Auto-calculate kWh/kVAh Ratio
   React.useEffect(() => {
@@ -308,12 +315,30 @@ export function ElectricityBillFormDialog({
         files: files || [],
         metadata: { ...restMeta, accountName: acctName, accountNumber },
       })
+      saveAccountName(acctName)
+      saveAccountNumber(accountNumber)
       toast.success("Electricity bill saved!")
       setOpen(false)
       form.reset()
     } catch {
       toast.error("Failed to save bill")
     }
+  }
+
+  const saveDropdownValue = (value: string, save: (value: string) => boolean, label: string) => {
+    if (save(value)) toast.success(`${label} saved`)
+    else toast.error(`Enter ${label.toLowerCase()}`)
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newFiles = Array.from(event.target.files || [])
+    if (newFiles.length === 0) return
+    form.setValue("files", [...selectedFiles, ...newFiles])
+    event.target.value = ""
+  }
+
+  const removeFile = (index: number) => {
+    form.setValue("files", selectedFiles.filter((_, fileIndex) => fileIndex !== index))
   }
 
   return (
@@ -344,10 +369,32 @@ export function ElectricityBillFormDialog({
                 <SectionTitle icon={<Building2 className="h-4 w-4" />} title="Account Info" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField control={form.control} name="accountName" render={({ field }) => (
-                    <FormItem><FormLabel className={labelClass}>Account Name *</FormLabel><FormControl><Input {...field} className={inputClass} /></FormControl></FormItem>
+                    <FormItem>
+                      <FormLabel className={labelClass}>Account Name *</FormLabel>
+                      <SavedAccountField
+                        value={field.value ?? ""}
+                        options={accountNames}
+                        placeholder="e.g. Main Office"
+                        inputClassName={inputClass}
+                        onChange={field.onChange}
+                        onSave={(value) => saveDropdownValue(value, saveAccountName, "Account name")}
+                      />
+                      <FormMessage />
+                    </FormItem>
                   )} />
                   <FormField control={form.control} name="accountNumber" render={({ field }) => (
-                    <FormItem><FormLabel className={labelClass}>Account Number *</FormLabel><FormControl><Input {...field} className={inputClass} /></FormControl></FormItem>
+                    <FormItem>
+                      <FormLabel className={labelClass}>Account Number *</FormLabel>
+                      <SavedAccountField
+                        value={field.value ?? ""}
+                        options={accountNumbers}
+                        placeholder="e.g. AC-0012"
+                        inputClassName={inputClass}
+                        onChange={field.onChange}
+                        onSave={(value) => saveDropdownValue(value, saveAccountNumber, "Account number")}
+                      />
+                      <FormMessage />
+                    </FormItem>
                   )} />
                 </div>
               </section>
@@ -451,6 +498,61 @@ export function ElectricityBillFormDialog({
                        </p>
                      )}
                    </div>
+                </div>
+              </section>
+
+              <section>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                  <div>
+                    <FormLabel className={labelClass}>Attach Document</FormLabel>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      multiple
+                      onChange={handleFileChange}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors"
+                    >
+                      <CloudUpload className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Click to upload bill</span>
+                    </button>
+                    {selectedFiles.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {selectedFiles.map((file, index) => (
+                          <div key={`${file.name}-${index}`} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg text-xs font-bold text-slate-600 border border-slate-100">
+                            <span className="truncate flex-1">{file.name}</span>
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-rose-500" onClick={() => removeFile(index)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="remarks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={labelClass}>Remarks / Notes</FormLabel>
+                        <FormControl>
+                          <textarea
+                            placeholder="Add notes..."
+                            {...field}
+                            value={field.value ?? ""}
+                            className="w-full h-[120px] rounded-xl border border-slate-200 p-4 text-sm font-medium focus:ring-1 focus:ring-blue-500 outline-none resize-none"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </section>
 

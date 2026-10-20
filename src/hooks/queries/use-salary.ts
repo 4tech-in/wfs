@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { salaryService } from "@/services/salary-service";
-import { SalaryPayload, SalaryListResponse, PayrollCalculationResult } from "@/types/salary";
+import { SalaryPayload, SalaryListResponse, PayrollCalculationResult, BulkPayrollCalculationResult } from "@/types/salary";
 
 /**
  * Hook to fetch all employee salaries with pagination
@@ -65,3 +65,13 @@ export function useCalculatePayrollQuery(employeeId: string, month: string) {
     enabled: !!employeeId && !!month,
   });
 }
+
+/**
+ * Mutation to calculate payroll for all employees
+ */
+export function useCalculateAllPayrollMutation() {
+  return useMutation<BulkPayrollCalculationResult, Error, { month: string; companyId?: string }>({
+    mutationFn: ({ month, companyId }) => salaryService.calculateAllPayroll(month, companyId),
+  });
+}
+

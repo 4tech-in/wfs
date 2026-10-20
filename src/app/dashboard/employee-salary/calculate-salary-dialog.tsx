@@ -5,7 +5,8 @@ import {
   Calculator, 
   Loader2, 
   CheckCircle2, 
-  AlertCircle
+  AlertCircle,
+  FileText
 } from "lucide-react"
 import {
   Dialog,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/select"
 import { useCalculatePayrollQuery } from "@/hooks/queries/use-salary"
 import { cn } from "@/lib/utils"
+import { SalarySlipDialog } from "./salary-slip-dialog"
 
 interface CalculateSalaryDialogProps {
   employeeId: string | null;
@@ -63,6 +65,7 @@ export function CalculateSalaryDialog({
   const [selectedYear, setSelectedYear] = React.useState(currentYear)
   const [isCalculating, setIsCalculating] = React.useState(false)
   const [monthToCalculate, setMonthToCalculate] = React.useState<string>("")
+  const [slipOpen, setSlipOpen] = React.useState(false)
 
   const { data: calculationResult, isLoading, isError, error, refetch, isFetching } = useCalculatePayrollQuery(
     employeeId || "",
@@ -95,15 +98,16 @@ export function CalculateSalaryDialog({
   }, [isLoading, isFetching])
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden border-none rounded-[28px] shadow-2xl">
+      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-none rounded-[28px] shadow-2xl">
         <DialogHeader className="p-8 pb-4 bg-slate-50/80 border-b border-slate-100">
           <DialogTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
             <Calculator className="h-5 w-5 text-indigo-500" />
             Salary Calculator
           </DialogTitle>
           <DialogDescription className="text-slate-500 font-medium">
-            Calculate estimated earnings for {employeeName}.
+            Calculate estimated earnings and generate payslip for {employeeName}.
           </DialogDescription>
         </DialogHeader>
 
@@ -187,36 +191,49 @@ export function CalculateSalaryDialog({
                      </span>
                   </div>
 
-                  <div className="pt-4 border-t border-emerald-100/50 grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-emerald-600/60 uppercase">Paid Days</p>
-                      <p className="text-sm font-bold text-emerald-900">{calculationResult?.totalPaidDays || "0"}</p>
+                  <div className="pt-4 border-t border-emerald-100/50 grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-white/60 p-2 rounded-xl border border-emerald-100/40">
+                      <p className="text-[9px] font-bold text-emerald-600/70 uppercase">Paid Days</p>
+                      <p className="text-sm font-black text-emerald-950">{calculationResult?.totalPaidDays || "0"}</p>
                     </div>
-                    <div className="space-y-1 text-right">
-                      <p className="text-[10px] font-bold text-emerald-600/60 uppercase">OT Hours</p>
-                      <p className="text-sm font-bold text-emerald-900">{calculationResult?.totalOvertimeHours || "0"}</p>
+                    <div className="bg-white/60 p-2 rounded-xl border border-emerald-100/40">
+                      <p className="text-[9px] font-bold text-emerald-600/70 uppercase">OT Hours</p>
+                      <p className="text-sm font-black text-emerald-950">{calculationResult?.totalOvertimeHours || "0"}h</p>
+                    </div>
+                    <div className="bg-white/60 p-2 rounded-xl border border-emerald-100/40">
+                      <p className="text-[9px] font-bold text-emerald-600/70 uppercase">Present</p>
+                      <p className="text-sm font-black text-emerald-950">{calculationResult?.presentDays ?? 0} d</p>
                     </div>
                   </div>
 
                   {calculationResult?.payrollDetails && (
-                    <div className="pt-4 border-t border-emerald-100/50 space-y-2">
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Earnings Breakdown</p>
+                    <div className="pt-3 border-t border-emerald-100/50 space-y-2">
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Earnings & Deductions</p>
                        <div className="grid grid-cols-3 gap-2">
-                          <div className="bg-white/50 p-2 rounded-lg border border-emerald-100/30">
+                          <div className="bg-white/70 p-2 rounded-lg border border-emerald-100/30">
                              <p className="text-[9px] font-bold text-slate-400 uppercase">Basic</p>
                              <p className="text-xs font-black text-slate-700">₹{calculationResult.payrollDetails.basic || 0}</p>
                           </div>
-                          <div className="bg-white/50 p-2 rounded-lg border border-emerald-100/30">
-                             <p className="text-[9px] font-bold text-slate-400 uppercase">HRA</p>
-                             <p className="text-xs font-black text-slate-700">₹{calculationResult.payrollDetails.hra || 0}</p>
+                          <div className="bg-white/70 p-2 rounded-lg border border-emerald-100/30">
+                             <p className="text-[9px] font-bold text-slate-400 uppercase">OT Pay</p>
+                             <p className="text-xs font-black text-slate-700">₹{calculationResult.overtimePay || 0}</p>
                           </div>
-                          <div className="bg-white/50 p-2 rounded-lg border border-emerald-100/30">
-                             <p className="text-[9px] font-bold text-slate-400 uppercase">PF (Emp)</p>
-                             <p className="text-xs font-black text-slate-700">₹{calculationResult.payrollDetails.pfEmployee || 0}</p>
+                          <div className="bg-white/70 p-2 rounded-lg border border-emerald-100/30">
+                             <p className="text-[9px] font-bold text-slate-400 uppercase">PF / Ded</p>
+                             <p className="text-xs font-black text-slate-700">₹{calculationResult.totalDeductions || calculationResult.payrollDetails.pfEmployee || 0}</p>
                           </div>
                        </div>
                     </div>
                   )}
+
+                  {/* View Salary Slip Action */}
+                  <Button
+                    onClick={() => setSlipOpen(true)}
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl shadow gap-2 text-xs"
+                  >
+                    <FileText className="h-4 w-4 text-teal-400" />
+                    View &amp; Print Salary Slip
+                  </Button>
                 </div>
               )}
             </div>
@@ -224,6 +241,14 @@ export function CalculateSalaryDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    <SalarySlipDialog
+      data={calculationResult || null}
+      open={slipOpen}
+      onOpenChange={setSlipOpen}
+      month={monthToCalculate}
+    />
+    </>
   )
 }
 

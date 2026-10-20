@@ -1,5 +1,5 @@
 import apiClient from '@/lib/api-client';
-import { SalaryPayload, SalaryListResponse, PayrollCalculationResult } from '@/types/salary';
+import { SalaryPayload, SalaryListResponse, PayrollCalculationResult, BulkPayrollCalculationResult } from '@/types/salary';
 import { toast } from 'sonner';
 
 /**
@@ -11,8 +11,14 @@ export const salaryService = {
    */
   createSalary: async (data: SalaryPayload): Promise<void> => {
     try {
-      await apiClient.post<SalaryPayload, void>('/employee-salary/add', data);
-      toast.success('Salary updated successfully');
+      const response: any = await apiClient.post<SalaryPayload, any>('/employee-salary/add', data);
+      const count = data.userIds?.length;
+      toast.success(
+        response?.message ||
+        (count && count > 1
+          ? `Salary configured for ${count} employees`
+          : 'Salary configured successfully')
+      );
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update salary';
       toast.error(errorMessage);
@@ -72,6 +78,21 @@ export const salaryService = {
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to calculate salary';
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
+
+  /**
+   * Calculate salary for all configured employees for a specific month
+   */
+  calculateAllPayroll: async (month: string, companyId?: string): Promise<BulkPayrollCalculationResult> => {
+    try {
+      return await apiClient.get<void, BulkPayrollCalculationResult>('/employee-salary/calculate-all', {
+        params: { month, companyId: companyId || undefined }
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to calculate bulk payroll';
       toast.error(errorMessage);
       throw error;
     }

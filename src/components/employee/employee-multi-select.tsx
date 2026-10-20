@@ -18,6 +18,8 @@ import { EmployeeDropdownItem } from "@/types/employee"
 interface EmployeeMultiSelectProps {
   values?: string[]
   departmentId?: string
+  companyId?: string
+  colorTheme?: "emerald" | "indigo"
   onValuesChange: (values: string[], employees: EmployeeDropdownItem[]) => void
   placeholder?: string
   className?: string
@@ -27,6 +29,8 @@ interface EmployeeMultiSelectProps {
 export function EmployeeMultiSelect({
   values = [],
   departmentId,
+  companyId,
+  colorTheme = "emerald",
   onValuesChange,
   placeholder = "Select employee(s)...",
   className,
@@ -36,6 +40,8 @@ export function EmployeeMultiSelect({
   const [search, setSearch] = React.useState("")
   const [hasBeenOpened, setHasBeenOpened] = React.useState(false)
   const debouncedSearch = useDebounce(search, 400)
+
+  const isIndigo = colorTheme === "indigo"
 
   // Track all discovered employees so we can resolve names for selected chips
   const [knownEmployees, setKnownEmployees] = React.useState<Map<string, EmployeeDropdownItem>>(
@@ -49,13 +55,30 @@ export function EmployeeMultiSelect({
     isFetchingNextPage,
     isLoading,
   } = useEmployeesDropdownInfiniteQuery(
-    { search: debouncedSearch, departmentId: departmentId || undefined, limit: 20 },
-    hasBeenOpened || values.length > 0
+    { 
+      search: debouncedSearch, 
+      departmentId: departmentId || undefined, 
+      companyId: companyId || undefined, 
+      limit: 20 
+    },
+    hasBeenOpened || values.length > 0 || Boolean(companyId)
   )
 
   const currentEmployees = React.useMemo(() => {
     return data?.pages.flatMap((page) => page.data) ?? []
   }, [data])
+
+  const handleScroll = React.useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const container = e.currentTarget
+      if (!container || !hasNextPage || isFetchingNextPage || isLoading) return
+      const { scrollTop, scrollHeight, clientHeight } = container
+      if (scrollTop + clientHeight >= scrollHeight - 80) {
+        fetchNextPage()
+      }
+    },
+    [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]
+  )
 
   // Update known employees map whenever new data arrives
   React.useEffect(() => {
@@ -132,6 +155,7 @@ export function EmployeeMultiSelect({
           setOpen(newOpen)
           if (newOpen) setHasBeenOpened(true)
         }}
+        modal={true}
       >
         <PopoverTrigger asChild>
           <Button
@@ -142,7 +166,7 @@ export function EmployeeMultiSelect({
             disabled={disabled}
             className={cn(
               "w-full justify-between h-10 px-3 text-sm font-medium rounded-xl border-slate-200 bg-white hover:bg-slate-50 transition-all",
-              values.length > 0 && "border-emerald-500/50 ring-1 ring-emerald-500/10",
+              values.length > 0 && (isIndigo ? "border-indigo-500/50 ring-1 ring-indigo-500/10" : "border-emerald-500/50 ring-1 ring-emerald-500/10"),
               className
             )}
           >
@@ -156,7 +180,12 @@ export function EmployeeMultiSelect({
               {values.length > 0 && (
                 <Badge
                   variant="secondary"
-                  className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 text-[10px] px-1.5 py-0 h-5 font-bold border border-emerald-200"
+                  className={cn(
+                    "text-[10px] px-1.5 py-0 h-5 font-bold border",
+                    isIndigo
+                      ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+                      : "bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+                  )}
                 >
                   {values.length}
                 </Badge>
@@ -167,8 +196,11 @@ export function EmployeeMultiSelect({
         </PopoverTrigger>
 
         <PopoverContent
-          className="w-[380px] p-0 rounded-2xl border-slate-200 shadow-xl overflow-hidden"
+          className="w-[var(--radix-popover-trigger-width)] min-w-[340px] max-w-[420px] p-0 rounded-2xl border-slate-200 shadow-xl overflow-hidden z-[60]"
           align="start"
+          sideOffset={4}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onWheel={(e) => e.stopPropagation()}
         >
           {/* Search bar */}
           <div className="p-2.5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
@@ -191,7 +223,10 @@ export function EmployeeMultiSelect({
                 <button
                   type="button"
                   onClick={handleSelectAllCurrent}
-                  className="text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer"
+                  className={cn(
+                    "hover:underline cursor-pointer",
+                    isIndigo ? "text-indigo-600 hover:text-indigo-700" : "text-emerald-600 hover:text-emerald-700"
+                  )}
                 >
                   Select Visible
                 </button>
@@ -209,10 +244,15 @@ export function EmployeeMultiSelect({
           </div>
 
           {/* List of employees with scroll and infinite load */}
-          <div className="max-h-[260px] overflow-y-auto p-1.5 custom-scrollbar divide-y divide-slate-50">
+          <div 
+            onScroll={handleScroll}
+            onWheel={(e) => e.stopPropagation()}
+            className="max-h-[260px] overflow-y-auto p-1.5 divide-y divide-slate-50 scrollbar-thin scrollbar-thumb-slate-200 overscroll-contain"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             {isLoading && currentEmployees.length === 0 ? (
               <div className="py-8 flex flex-col items-center justify-center text-xs text-slate-400 gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                <Loader2 className={cn("h-4 w-4 animate-spin", isIndigo ? "text-indigo-600" : "text-emerald-600")} />
                 <span>Loading employees...</span>
               </div>
             ) : currentEmployees.length === 0 ? (
@@ -228,21 +268,23 @@ export function EmployeeMultiSelect({
                     onClick={() => toggleEmployee(emp)}
                     className={cn(
                       "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-colors text-xs select-none",
-                      isChecked ? "bg-emerald-50/60 hover:bg-emerald-50" : "hover:bg-slate-50"
+                      isChecked 
+                        ? (isIndigo ? "bg-indigo-50/60 hover:bg-indigo-50" : "bg-emerald-50/60 hover:bg-emerald-50") 
+                        : "hover:bg-slate-50"
                     )}
                   >
                     <div
                       className={cn(
                         "flex size-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors",
                         isChecked
-                          ? "bg-emerald-600 border-emerald-600 text-white"
+                          ? (isIndigo ? "bg-indigo-600 border-indigo-600 text-white" : "bg-emerald-600 border-emerald-600 text-white")
                           : "border-slate-300 bg-white"
                       )}
                     >
                       {isChecked && <Check className="size-3 stroke-[3]" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={cn("font-semibold truncate", isChecked ? "text-emerald-900" : "text-slate-800")}>
+                      <p className={cn("font-semibold truncate", isChecked ? (isIndigo ? "text-indigo-900" : "text-emerald-900") : "text-slate-800")}>
                         {emp.name}
                         {emp.otherName && (
                           <span className="text-slate-400 font-normal ml-1">
@@ -268,7 +310,10 @@ export function EmployeeMultiSelect({
                   size="sm"
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="h-7 text-xs w-full text-slate-500 hover:text-emerald-600 cursor-pointer"
+                  className={cn(
+                    "h-7 text-xs w-full text-slate-500 cursor-pointer",
+                    isIndigo ? "hover:text-indigo-600" : "hover:text-emerald-600"
+                  )}
                 >
                   {isFetchingNextPage ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
@@ -284,26 +329,42 @@ export function EmployeeMultiSelect({
 
       {/* Selected employee pill chips */}
       {values.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto p-1 custom-scrollbar">
+        <div 
+          onWheel={(e) => e.stopPropagation()}
+          className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-slate-200 overscroll-contain"
+        >
           {values.map((id) => {
             const emp = knownEmployees.get(id) || currentEmployees.find((e) => e._id === id)
             return (
               <span
                 key={id}
-                className="inline-flex items-center gap-1.5 bg-emerald-50/80 border border-emerald-200/80 text-emerald-800 text-[11px] font-medium px-2 py-0.5 rounded-lg shadow-2xs animate-in fade-in zoom-in-95 duration-150"
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-lg shadow-2xs animate-in fade-in zoom-in-95 duration-150 border",
+                  isIndigo
+                    ? "bg-indigo-50/80 border-indigo-200/80 text-indigo-800"
+                    : "bg-emerald-50/80 border-emerald-200/80 text-emerald-800"
+                )}
               >
                 <span className="truncate max-w-[140px]">
                   {emp ? emp.name : id.slice(-6)}
                 </span>
                 {emp?.employeeId && (
-                  <span className="font-mono text-[9px] text-emerald-600 font-bold bg-white/70 px-1 rounded">
+                  <span className={cn(
+                    "font-mono text-[9px] font-bold bg-white/70 px-1 rounded",
+                    isIndigo ? "text-indigo-600" : "text-emerald-600"
+                  )}>
                     {emp.employeeId}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={(e) => removeEmployee(id, e)}
-                  className="hover:bg-emerald-200/60 rounded p-0.5 text-emerald-600 hover:text-emerald-900 transition-colors cursor-pointer"
+                  className={cn(
+                    "rounded p-0.5 transition-colors cursor-pointer",
+                    isIndigo 
+                      ? "text-indigo-600 hover:text-indigo-900 hover:bg-indigo-200/60"
+                      : "text-emerald-600 hover:text-emerald-900 hover:bg-emerald-200/60"
+                  )}
                   title="Remove"
                 >
                   <X className="h-3 w-3" />

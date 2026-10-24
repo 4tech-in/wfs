@@ -19,6 +19,7 @@ export interface SalaryListItem {
     employeeId: string;
     email?: string;
     otherName?: string;
+    uniqueId?: string;
   };
   user?: {
     _id: string;
@@ -26,6 +27,7 @@ export interface SalaryListItem {
     employeeId: string;
     email?: string;
     otherName?: string;
+    uniqueId?: string;
   };
   hourly: boolean;
   monthly: boolean;

@@ -83,7 +83,7 @@ export function SalaryTable({
               {getEmployeeData(row.original)?.name || "Unknown"}
             </span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-              {getEmployeeData(row.original)?.email || "N/A"}
+              {getEmployeeData(row.original)?.uniqueId || "N/A"}
             </span>
           </div>
         </div>

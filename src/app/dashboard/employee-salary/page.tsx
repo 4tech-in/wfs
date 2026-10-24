@@ -151,7 +151,7 @@ export default function EmployeeSalaryPage() {
     }
 
     return (
-        <div className="flex flex-col gap-8 p-4 md:p-8 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-heading italic">Employee Salary</h1>

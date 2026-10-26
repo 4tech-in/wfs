@@ -153,25 +153,44 @@ export function AttendanceTab({ employeeId, onLeaveClick }: AttendanceTabProps) 
   const leaves = leavesData?.data || [];
 
   const stats = useMemo(() => {
-    if (!attendanceData?.data) {
-      return { present: 0, absent: 0, late: 0, halfDay: 0, onLeave: 0 };
-    }
     let present = 0;
     let absent = 0;
     let late = 0;
     let halfDay = 0;
     let onLeave = 0;
 
-    attendanceData.data.forEach(item => {
-      if (item.status === "Present") present++;
-      else if (item.status === "Absent") absent++;
-      else if (item.status === "Late") late++;
-      else if (item.status === "Half-Day") halfDay++;
-      else if (item.status === "On Leave") onLeave++;
+    if (attendanceData?.data) {
+      attendanceData.data.forEach(item => {
+        if (item.status === "Present") present++;
+        else if (item.status === "Absent") absent++;
+        else if (item.status === "Late") late++;
+        else if (item.status === "Half-Day") halfDay++;
+        else if (item.status === "On Leave") onLeave++;
+      });
+    }
+
+    // Include any past days in month that have no attendance record and no approved leave
+    const now = new Date();
+    calendarDays.forEach(day => {
+      if (isSameMonth(day, currentDate) && day < now) {
+        const dateKey = format(day, "yyyy-MM-dd");
+        if (!attendanceMap[dateKey]) {
+          const hasLeave = leaves.some(leave => 
+            leave.status !== 'Rejected' &&
+            isWithinInterval(startOfDay(day), {
+              start: startOfDay(new Date(leave.fromDate)),
+              end: endOfDay(new Date(leave.toDate))
+            })
+          );
+          if (!hasLeave) {
+            absent++;
+          }
+        }
+      }
     });
 
     return { present, absent, late, halfDay, onLeave };
-  }, [attendanceData]);
+  }, [attendanceData, calendarDays, currentDate, attendanceMap, leaves]);
 
   return (
     <div className="p-8 bg-slate-50/50 min-h-[600px] flex flex-col gap-6">
@@ -469,8 +488,14 @@ export function AttendanceTab({ employeeId, onLeaveClick }: AttendanceTabProps) 
                     </Tooltip>
                   ) : (
                     isCurrentMonth && day < new Date() && (
-                      <div className="mt-auto opacity-30 text-[10px] font-bold text-slate-400 italic text-center pb-2">
-                        No record
+                      <div className="flex flex-col gap-2">
+                        <div className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-tight",
+                          statusColors["Absent"]
+                        )}>
+                          <XCircle className="h-3 w-3" />
+                          Absent
+                        </div>
                       </div>
                     )
                   )}

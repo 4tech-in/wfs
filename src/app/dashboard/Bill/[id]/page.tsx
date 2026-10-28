@@ -16,13 +16,16 @@ import {
   Share2,
   Trash2,
   Printer,
-  Plus
+  Plus,
+  Pencil
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { WaterBillFormDialog } from "@/components/dashboard/bill/water-bill-form-dialog"
+import { ElectricityBillFormDialog } from "@/components/dashboard/bill/electricity-bill-form-dialog"
 import { ElectricityTrendChart } from "@/components/dashboard/bill/electricity-trend-chart"
 import { useSingleDocQuery, useDeleteDocMutation } from "@/hooks/queries/use-doc-center"
 import { WaterBillRecord, WaterBillMetadata } from "@/types/water-bill"
+import { ElectricityBillMetadata } from "@/types/electricity-bill"
 import { cn } from "@/lib/utils"
 import { format, parseISO, isValid } from "date-fns"
 import { toast } from "sonner"
@@ -191,19 +194,51 @@ export default function BillDetailPage() {
           className="text-slate-500 hover:text-blue-600 font-bold group px-0"
         >
           <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          Back to Water Bills
+          Back to Bills
         </Button>
         
         <div className="flex items-center gap-2">
-          <WaterBillFormDialog 
-            initialData={meta}
-            trigger={
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Next Bill
-              </Button>
-            }
-          />
+          {billData.documentType === "Electricity" ? (
+            <>
+              <ElectricityBillFormDialog
+                recordId={id}
+                initialData={meta as ElectricityBillMetadata}
+                trigger={
+                  <Button variant="outline" className="rounded-xl border-slate-200 font-bold">
+                    <Pencil className="mr-2 h-4 w-4" /> Edit Bill
+                  </Button>
+                }
+              />
+              <ElectricityBillFormDialog
+                initialData={meta as ElectricityBillMetadata}
+                trigger={
+                  <Button className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl font-bold shadow-lg shadow-yellow-500/20">
+                    <Plus className="mr-2 h-4 w-4" /> Create Next Bill
+                  </Button>
+                }
+              />
+            </>
+          ) : (
+            <>
+              <WaterBillFormDialog
+                recordId={id}
+                initialData={meta}
+                trigger={
+                  <Button variant="outline" className="rounded-xl border-slate-200 font-bold">
+                    <Pencil className="mr-2 h-4 w-4" /> Edit Bill
+                  </Button>
+                }
+              />
+              <WaterBillFormDialog
+                initialData={meta}
+                trigger={
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20">
+                    <Plus className="mr-2 h-4 w-4" /> Create Next Bill
+                  </Button>
+                }
+              />
+            </>
+          )}
           <Button variant="outline" size="icon" className="rounded-xl border-slate-200" title="Print Bill">
             <Printer className="h-4 w-4 text-slate-500" />
           </Button>

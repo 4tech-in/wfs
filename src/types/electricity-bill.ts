@@ -23,7 +23,6 @@ export interface ElectricityBillMetadata {
   ed?: string;
   edRate?: string;
   fixedCharges?: string;
-  powerFactor?: string;
   mcTaxRate?: string;
   mcTax?: string;
   pfIncentive?: string;

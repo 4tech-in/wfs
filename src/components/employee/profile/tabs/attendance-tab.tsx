@@ -85,6 +85,8 @@ const statusColors: Record<AttendanceStatus, string> = {
   "Late": "bg-amber-50 text-amber-600 border-amber-100",
   "Half-Day": "bg-orange-50 text-orange-600 border-orange-100",
   "On Leave": "bg-blue-50 text-blue-600 border-blue-100",
+  "WeeklyOff": "bg-slate-50 text-slate-600 border-slate-200",
+  "Holiday": "bg-violet-50 text-violet-600 border-violet-100",
 };
 
 const statusIcons: Record<AttendanceStatus, React.ElementType> = {
@@ -93,6 +95,8 @@ const statusIcons: Record<AttendanceStatus, React.ElementType> = {
   "Late": Clock,
   "Half-Day": AlertCircle,
   "On Leave": Info,
+  "WeeklyOff": Info,
+  "Holiday": Info,
 };
 
 const months = [

@@ -9,7 +9,8 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
-  PlusCircle
+  PlusCircle,
+  Pencil
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -158,7 +159,7 @@ export function ElectricityBillTable({
               ED
             </TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right border-r border-slate-100">
-              Power Factor
+              kWh/kVAh Ratio (Power Factor)
             </TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right border-r border-slate-100">
               MC Tax
@@ -269,7 +270,7 @@ export function ElectricityBillTable({
                   </TableCell>
 
                   <TableCell className="py-4 font-bold text-slate-600 text-[13px] text-right border-r border-slate-100">
-                    {meta?.powerFactor || "—"}
+                    {meta?.kwhKvahRatio ? `${meta.kwhKvahRatio}%` : "—"}
                   </TableCell>
 
                   <TableCell className="py-4 font-bold text-slate-600 text-[13px] text-right border-r border-slate-100">
@@ -311,6 +312,15 @@ export function ElectricityBillTable({
                           <Maximize2 className="h-4 w-4" />
                         </Button>
                       </Link>
+                      <ElectricityBillFormDialog
+                        recordId={bill._id}
+                        initialData={meta}
+                        trigger={
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600 rounded-lg" title="Edit Bill">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
                       <ElectricityBillFormDialog 
                         initialData={meta}
                         trigger={

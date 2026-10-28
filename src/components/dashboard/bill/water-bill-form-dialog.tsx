@@ -36,7 +36,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { useUploadDocMutation } from "@/hooks/queries/use-doc-center"
+import { useUpdateDocMutation, useUploadDocMutation } from "@/hooks/queries/use-doc-center"
 import { useSavedBillAccounts } from "@/hooks/use-saved-bill-accounts"
 import { SavedAccountField } from "./saved-account-field"
 import { toast } from "sonner"
@@ -68,11 +68,12 @@ interface WaterBillFormDialogProps {
   defaultAccountName?: string
   defaultAccountNumber?: string
   initialData?: WaterBillMetadata
+  recordId?: string
 }
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const inputClass =
-  "rounded-xl border-slate-200 focus-visible:ring-blue-500 h-11 font-medium text-sm transition-all"
+  "rounded-xl border border-slate-200 focus-visible:ring-blue-500 h-11 font-medium text-sm transition-all"
 
 const labelClass = "text-xs font-bold text-slate-500 uppercase tracking-tight mb-1"
 
@@ -221,33 +222,42 @@ export function WaterBillFormDialog({
   defaultAccountName = "",
   defaultAccountNumber = "",
   initialData,
+  recordId,
 }: WaterBillFormDialogProps) {
   const [open, setOpen] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const uploadMutation = useUploadDocMutation()
-  const { accountNames, accountNumbers, saveAccountName, saveAccountNumber } = useSavedBillAccounts()
+  const updateMutation = useUpdateDocMutation()
+  const isEditing = Boolean(recordId)
+  const {
+    accountNames,
+    saveAccountName,
+    saveAccount,
+    getAccountNumbers,
+  } = useSavedBillAccounts()
 
   const form = useForm<WaterBillFormValues>({
     resolver: zodResolver(waterBillSchema),
     defaultValues: {
       accountName: initialData?.accountName || defaultAccountName,
       accountNumber: initialData?.accountNumber || defaultAccountNumber,
-      billFrom: "",
-      billTo: "",
-      isFromAverage: false,
-      isToAverage: false,
-      connectionSize: "",
-      billPeriod: "",
-      unit: "",
-      totalAmount: "",
-      paidUnitRate: "",
-      unitRemarks: "",
-      remarks: "",
+      billFrom: isEditing ? String(initialData?.billFrom ?? "") : "",
+      billTo: isEditing ? String(initialData?.billTo ?? "") : "",
+      isFromAverage: isEditing ? Boolean(initialData?.isFromAverage) : false,
+      isToAverage: isEditing ? Boolean(initialData?.isToAverage) : false,
+      connectionSize: isEditing ? String(initialData?.connectionSize ?? "") : "",
+      billPeriod: isEditing ? String(initialData?.billPeriod ?? "") : "",
+      unit: isEditing ? String(initialData?.unit ?? "") : "",
+      totalAmount: isEditing ? String(initialData?.totalAmount ?? "") : "",
+      paidUnitRate: isEditing ? String(initialData?.paidUnitRate ?? "") : "",
+      unitRemarks: isEditing ? String(initialData?.unitRemarks ?? "") : "",
+      remarks: isEditing ? String(initialData?.remarks ?? "") : "",
       files: [],
     },
   })
 
   // Destructure watched values for reactivity
+  const watchedAccountName = useWatch({ control: form.control, name: "accountName" })
   const watchedUnit = useWatch({ control: form.control, name: "unit" })
   const watchedTotal = useWatch({ control: form.control, name: "totalAmount" })
   const watchedIsFromAvg = useWatch({ control: form.control, name: "isFromAverage" })
@@ -255,6 +265,7 @@ export function WaterBillFormDialog({
   const watchedFiles = useWatch({ control: form.control, name: "files" })
 
   const selectedFiles = watchedFiles ?? []
+  const linkedAccountNumbers = getAccountNumbers(watchedAccountName || "")
 
   const lastCalcPaidRateRef = React.useRef<string>("")
 
@@ -293,17 +304,21 @@ export function WaterBillFormDialog({
       const title = `Water Bill – ${acctName || "Account"} – ${
         values.billFrom || new Date().toLocaleDateString("en-IN")
       }`
-      await uploadMutation.mutateAsync({
+      const data = {
         title,
         documentType: "Water",
         files: files && files.length > 0 ? files : [],
         metadata,
-      })
-      saveAccountName(acctName)
-      saveAccountNumber(accountNumber)
-      toast.success("Water bill saved successfully!")
+      }
+      if (recordId) {
+        await updateMutation.mutateAsync({ id: recordId, data })
+      } else {
+        await uploadMutation.mutateAsync(data)
+      }
+      saveAccount(acctName, accountNumber)
+      toast.success(recordId ? "Water bill updated successfully!" : "Water bill saved successfully!")
       setOpen(false)
-      form.reset()
+      form.reset(recordId ? values : undefined)
     } catch {
       toast.error("Failed to save water bill")
     }
@@ -353,7 +368,7 @@ export function WaterBillFormDialog({
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2 text-xl font-black">
               <Droplets className="h-5 w-5 text-blue-400" />
-              Water Bill Entry
+              {isEditing ? "Edit Water Bill" : "Water Bill Entry"}
             </DialogTitle>
             <DialogDescription className="text-slate-400 text-sm font-medium">
               Fill in all fields from the water bill. Fields with * are required.
@@ -379,7 +394,14 @@ export function WaterBillFormDialog({
                           options={accountNames}
                           placeholder="e.g. Main Office"
                           inputClassName={inputClass}
-                          onChange={field.onChange}
+                          onChange={(value) => {
+                            field.onChange(value)
+                            const numbers = getAccountNumbers(value)
+                            form.setValue("accountNumber", numbers.length === 1 ? numbers[0] : "", {
+                              shouldValidate: false,
+                            })
+                            form.clearErrors("accountNumber")
+                          }}
                           onSave={(value) => saveDropdownValue(value, saveAccountName, "Account name")}
                         />
                         <FormMessage />
@@ -394,11 +416,18 @@ export function WaterBillFormDialog({
                         <FormLabel className={labelClass}>Connection ID *</FormLabel>
                         <SavedAccountField
                           value={field.value ?? ""}
-                          options={accountNumbers}
+                          options={linkedAccountNumbers}
                           placeholder="e.g. WC-0012"
                           inputClassName={inputClass}
+                          disabled={!watchedAccountName?.trim()}
                           onChange={field.onChange}
-                          onSave={(value) => saveDropdownValue(value, saveAccountNumber, "Connection ID")}
+                          onSave={(value) => {
+                            if (saveAccount(watchedAccountName || "", value)) {
+                              toast.success("Connection ID saved")
+                            } else {
+                              toast.error("Select or enter an account name first")
+                            }
+                          }}
                         />
                         <FormMessage />
                       </FormItem>
@@ -608,10 +637,12 @@ export function WaterBillFormDialog({
           </Button>
           <Button 
             onClick={form.handleSubmit(onSubmit)} 
-            disabled={uploadMutation.isPending}
+            disabled={uploadMutation.isPending || updateMutation.isPending}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl px-8"
           >
-            {uploadMutation.isPending ? "Saving..." : "Save Water Bill"}
+            {(uploadMutation.isPending || updateMutation.isPending)
+              ? (isEditing ? "Updating..." : "Saving...")
+              : (isEditing ? "Update Water Bill" : "Save Water Bill")}
           </Button>
         </div>
       </DialogContent>

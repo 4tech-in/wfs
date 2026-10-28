@@ -9,7 +9,8 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
-  PlusCircle
+  PlusCircle,
+  Pencil
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -377,6 +378,15 @@ export function WaterBillTable({
                             <Maximize2 className="h-4 w-4" />
                           </Button>
                         </Link>
+                        <WaterBillFormDialog
+                          recordId={bill._id}
+                          initialData={meta}
+                          trigger={
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600 rounded-lg" title="Edit Bill">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
                         <WaterBillFormDialog 
                           initialData={meta}
                           trigger={

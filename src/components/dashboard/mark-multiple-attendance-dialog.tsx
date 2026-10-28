@@ -63,8 +63,8 @@ import { EmployeeDropdownItem } from "@/types/employee"
 const multiAttendanceSchema = z.object({
   companyId: z.string().optional(),
   userIds: z.array(z.string()).min(1, "Select at least one employee"),
-  date: z.any().refine((val) => val instanceof Date, "Date is required"),
-  status: z.string().min(1, "Status is required"),
+  dates: z.array(z.date()).min(1, "Select at least one date"),
+  status: z.enum(["Present", "Absent", "Half-Day", "Holiday"]),
 })
 
 type MultiAttendanceFormValues = z.infer<typeof multiAttendanceSchema>
@@ -73,7 +73,7 @@ interface MarkMultipleAttendanceDialogProps {
   trigger?: React.ReactNode
 }
 
-const ATTENDANCE_STATUSES = ["Present", "Absent", "Half Day", "Holiday"]
+const ATTENDANCE_STATUSES = ["Present", "Absent", "Half-Day", "Holiday"] as const
 
 export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendanceDialogProps) {
   const [open, setOpen] = React.useState(false)
@@ -90,7 +90,7 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
     defaultValues: {
       companyId: "all",
       userIds: [],
-      date: new Date(),
+      dates: [new Date()],
       status: "Present",
     },
   })
@@ -152,7 +152,7 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
     try {
       await updateMutation.mutateAsync({
         userIds: values.userIds,
-        date: format(values.date, "yyyy-MM-dd"),
+        dates: values.dates.map((date) => format(date, "yyyy-MM-dd")),
         status: values.status,
       })
       setOpen(false)
@@ -373,10 +373,17 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
               {/* Date Selection */}
               <FormField
                 control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="text-xs font-black text-slate-400 uppercase tracking-widest">Date</FormLabel>
+                name="dates"
+                render={({ field }) => {
+                  const selectedDates = Array.isArray(field.value)
+                    ? field.value
+                    : field.value instanceof Date
+                      ? [field.value]
+                      : []
+
+                  return (
+                    <FormItem className="flex flex-col">
+                    <FormLabel className="text-xs font-black text-slate-400 uppercase tracking-widest">Dates</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -384,27 +391,34 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
                             variant="outline"
                             className={cn(
                               "h-12 pl-3 text-left font-bold text-xs italic rounded-xl border-slate-200 bg-white/50 hover:bg-white transition-all",
-                              !field.value && "text-muted-foreground"
+                              selectedDates.length === 0 && "text-muted-foreground"
                             )}
                           >
-                            {field.value ? format(field.value, "dd MMM yyyy") : <span>Pick a date</span>}
+                            {selectedDates.length === 0 ? (
+                              <span>Pick dates</span>
+                            ) : selectedDates.length === 1 ? (
+                              format(selectedDates[0]!, "dd MMM yyyy")
+                            ) : (
+                              `${selectedDates.length} dates selected`
+                            )}
                             <CalendarIcon className="ml-auto h-4 w-4 text-emerald-500" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
                         <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
+                          mode="multiple"
+                          selected={selectedDates}
+                          onSelect={(dates) => field.onChange(dates || [])}
                           initialFocus
                           className="rounded-2xl"
                         />
                       </PopoverContent>
                     </Popover>
                     <FormMessage className="text-[10px] font-bold" />
-                  </FormItem>
-                )}
+                    </FormItem>
+                  )
+                }}
               />
 
               {/* Status Selection */}

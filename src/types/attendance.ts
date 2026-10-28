@@ -1,7 +1,7 @@
 /**
  * Attendance status types
  */
-export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half-Day' | 'On Leave';
+export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half-Day' | 'On Leave' | 'WeeklyOff' | 'Holiday';
 
 export type ManualAttendanceStatus = 'Present' | 'Absent' | 'Half-Day' | 'WeeklyOff' | 'Holiday';
 
@@ -25,6 +25,12 @@ export interface MarkAttendanceDto {
   status: 'Present' | 'Absent';
   punchIn?: string | null;
   punchOut?: string | null;
+}
+
+export interface UpdateMultipleAttendanceDto {
+  userIds: string[];
+  dates: string[];
+  status: ManualAttendanceStatus;
 }
 
 /**

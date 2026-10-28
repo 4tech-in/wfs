@@ -35,7 +35,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { useUploadDocMutation } from "@/hooks/queries/use-doc-center"
+import { useUpdateDocMutation, useUploadDocMutation } from "@/hooks/queries/use-doc-center"
 import { useSavedBillAccounts } from "@/hooks/use-saved-bill-accounts"
 import { SavedAccountField } from "./saved-account-field"
 import { toast } from "sonner"
@@ -56,7 +56,6 @@ const electricityBillSchema = z.object({
   unitKvah: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   kwhKvahRatio: z.string().optional(),
   unitPriceBasic: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  powerFactor: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   totalAmount: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   adjPrevBill: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   acdInt: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
@@ -76,9 +75,10 @@ interface ElectricityBillFormDialogProps {
   defaultAccountName?: string
   defaultAccountNumber?: string
   initialData?: ElectricityBillMetadata
+  recordId?: string
 }
 
-const inputClass = "rounded-xl border-slate-200 focus-visible:ring-blue-500 h-11 font-medium text-sm transition-all"
+const inputClass = "rounded-xl border border-slate-200 focus-visible:ring-blue-500 h-11 font-medium text-sm transition-all"
 const labelClass = "text-xs font-bold text-slate-500 uppercase tracking-tight mb-1"
 
 const blockNegativeKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -224,49 +224,79 @@ export function ElectricityBillFormDialog({
   defaultAccountName = "",
   defaultAccountNumber = "",
   initialData,
+  recordId,
 }: ElectricityBillFormDialogProps) {
   const [open, setOpen] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const uploadMutation = useUploadDocMutation()
-  const { accountNames, accountNumbers, saveAccountName, saveAccountNumber } = useSavedBillAccounts()
+  const updateMutation = useUpdateDocMutation()
+  const isEditing = Boolean(recordId)
+  const {
+    accountNames,
+    saveAccountName,
+    saveAccount,
+    getAccountNumbers,
+  } = useSavedBillAccounts()
 
   const form = useForm<ElectricityBillFormValues>({
     resolver: zodResolver(electricityBillSchema),
     defaultValues: {
       accountName: initialData?.accountName || defaultAccountName,
       accountNumber: initialData?.accountNumber || defaultAccountNumber,
-      billFrom: "",
-      billTo: "",
-      months: "",
-      connectedLoad: "",
-      contractDemand: "",
-      billPeriod: "",
-      unitKwh: "",
-      unitKvah: "",
-      kwhKvahRatio: "",
-      unitPriceBasic: "",
-      powerFactor: "",
-      totalAmount: "",
-      adjPrevBill: "",
-      acdInt: "",
-      acd: "",
-      lastAcd: "",
-      paidAmount: "",
-      paidOn: "",
-      paidUnitRate: "",
-      remarks: "",
+      billFrom: isEditing ? String(initialData?.billFrom ?? "") : "",
+      billTo: isEditing ? String(initialData?.billTo ?? "") : "",
+      months: isEditing ? String(initialData?.months ?? "") : "",
+      connectedLoad: isEditing ? String(initialData?.connectedLoad ?? "") : "",
+      contractDemand: isEditing ? String(initialData?.contractDemand ?? "") : "",
+      billPeriod: isEditing ? String(initialData?.billPeriod ?? "") : "",
+      unitKwh: isEditing ? String(initialData?.unitKwh ?? "") : "",
+      unitKvah: isEditing ? String(initialData?.unitKvah ?? "") : "",
+      kwhKvahRatio: isEditing ? String(initialData?.kwhKvahRatio ?? "") : "",
+      unitPriceBasic: isEditing ? String(initialData?.unitPriceBasic ?? "") : "",
+      totalAmount: isEditing ? String(initialData?.totalAmount ?? "") : "",
+      adjPrevBill: isEditing ? String(initialData?.adjPrevBill ?? "") : "",
+      acdInt: isEditing ? String(initialData?.acdInt ?? "") : "",
+      acd: isEditing ? String(initialData?.acd ?? "") : "",
+      lastAcd: isEditing ? String(initialData?.lastAcd ?? "") : "",
+      paidAmount: isEditing ? String(initialData?.paidAmount ?? "") : "",
+      paidOn: isEditing ? String(initialData?.paidOn ?? "") : "",
+      paidUnitRate: isEditing ? String(initialData?.paidUnitRate ?? "") : "",
+      remarks: isEditing ? String(initialData?.remarks ?? "") : "",
       files: [],
     },
   })
 
+  const watchedAccountName = useWatch({ control: form.control, name: "accountName" })
+  const watchedBillFrom = useWatch({ control: form.control, name: "billFrom" })
+  const watchedBillTo = useWatch({ control: form.control, name: "billTo" })
   const watchedUnitKwh = useWatch({ control: form.control, name: "unitKwh" })
   const watchedUnitKvah = useWatch({ control: form.control, name: "unitKvah" })
-  const watchedUnitPriceBasic = useWatch({ control: form.control, name: "unitPriceBasic" })
-  const watchedAcdInt = useWatch({ control: form.control, name: "acdInt" })
-  const watchedAcd = useWatch({ control: form.control, name: "acd" })
   const watchedTotal = useWatch({ control: form.control, name: "totalAmount" })
   const watchedFiles = useWatch({ control: form.control, name: "files" })
   const selectedFiles = watchedFiles ?? []
+
+  const linkedAccountNumbers = getAccountNumbers(watchedAccountName || "")
+
+  // Calculate the inclusive number of calendar months in the billing period.
+  React.useEffect(() => {
+    if (!watchedBillFrom || !watchedBillTo) {
+      form.setValue("months", "", { shouldDirty: false })
+      return
+    }
+
+    const from = parseISO(watchedBillFrom)
+    const to = parseISO(watchedBillTo)
+    if (!isValid(from) || !isValid(to) || to < from) {
+      form.setValue("months", "", { shouldDirty: false })
+      return
+    }
+
+    const months =
+      (to.getFullYear() - from.getFullYear()) * 12 +
+      (to.getMonth() - from.getMonth()) +
+      1
+    form.setValue("months", String(months), { shouldDirty: false })
+  }, [watchedBillFrom, watchedBillTo, form])
 
   // Auto-calculate kWh/kVAh Ratio
   React.useEffect(() => {
@@ -277,24 +307,13 @@ export function ElectricityBillFormDialog({
     }
   }, [watchedUnitKwh, watchedUnitKvah, form])
 
-  // Auto-calculate Total Amount from Unit kWh & Unit Price Basic if provided
+  // Default Actual Paid to Total Amount, but preserve a user's manual override.
   React.useEffect(() => {
-    const kwh = safeParse(watchedUnitKwh)
-    const unitPrice = safeParse(watchedUnitPriceBasic)
-    if (kwh > 0 && unitPrice > 0) {
-      form.setValue("totalAmount", (kwh * unitPrice).toFixed(2))
+    if (isEditing && initialData?.paidAmount !== undefined) return
+    if (!form.getFieldState("paidAmount").isDirty) {
+      form.setValue("paidAmount", watchedTotal || "", { shouldDirty: false })
     }
-  }, [watchedUnitKwh, watchedUnitPriceBasic, form])
-
-  // Auto-calculate Actual Paid Amount
-  React.useEffect(() => {
-    const sum = (
-      safeParse(watchedTotal) +
-      safeParse(watchedAcdInt) +
-      safeParse(watchedAcd)
-    ).toFixed(2)
-    form.setValue("paidAmount", sum)
-  }, [watchedTotal, watchedAcdInt, watchedAcd, form])
+  }, [watchedTotal, form, isEditing, initialData?.paidAmount])
 
   // Auto-calculate Unit Price Actual
   React.useEffect(() => {
@@ -309,17 +328,21 @@ export function ElectricityBillFormDialog({
     try {
       const { files, accountName: acctName, accountNumber, ...restMeta } = values
       const title = `Electricity Bill – ${acctName} – ${values.billFrom ? `${values.billFrom} to ${values.billTo || ""}` : new Date().toLocaleDateString("en-IN")}`
-      await uploadMutation.mutateAsync({
+      const data = {
         title,
         documentType: "Electricity",
         files: files || [],
         metadata: { ...restMeta, accountName: acctName, accountNumber },
-      })
-      saveAccountName(acctName)
-      saveAccountNumber(accountNumber)
-      toast.success("Electricity bill saved!")
+      }
+      if (recordId) {
+        await updateMutation.mutateAsync({ id: recordId, data })
+      } else {
+        await uploadMutation.mutateAsync(data)
+      }
+      saveAccount(acctName, accountNumber)
+      toast.success(recordId ? "Electricity bill updated!" : "Electricity bill saved!")
       setOpen(false)
-      form.reset()
+      form.reset(recordId ? values : undefined)
     } catch {
       toast.error("Failed to save bill")
     }
@@ -357,7 +380,7 @@ export function ElectricityBillFormDialog({
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2 text-xl font-black">
               <Zap className="h-5 w-5 text-yellow-400" />
-              Electricity Bill Entry
+              {isEditing ? "Edit Electricity Bill" : "Electricity Bill Entry"}
             </DialogTitle>
           </DialogHeader>
         </div>
@@ -376,7 +399,14 @@ export function ElectricityBillFormDialog({
                         options={accountNames}
                         placeholder="e.g. Main Office"
                         inputClassName={inputClass}
-                        onChange={field.onChange}
+                        onChange={(value) => {
+                          field.onChange(value)
+                          const numbers = getAccountNumbers(value)
+                          form.setValue("accountNumber", numbers.length === 1 ? numbers[0] : "", {
+                            shouldValidate: false,
+                          })
+                          form.clearErrors("accountNumber")
+                        }}
                         onSave={(value) => saveDropdownValue(value, saveAccountName, "Account name")}
                       />
                       <FormMessage />
@@ -387,11 +417,18 @@ export function ElectricityBillFormDialog({
                       <FormLabel className={labelClass}>Account Number *</FormLabel>
                       <SavedAccountField
                         value={field.value ?? ""}
-                        options={accountNumbers}
+                        options={linkedAccountNumbers}
                         placeholder="e.g. AC-0012"
                         inputClassName={inputClass}
+                        disabled={!watchedAccountName?.trim()}
                         onChange={field.onChange}
-                        onSave={(value) => saveDropdownValue(value, saveAccountNumber, "Account number")}
+                        onSave={(value) => {
+                          if (saveAccount(watchedAccountName || "", value)) {
+                            toast.success("Account number saved")
+                          } else {
+                            toast.error("Select or enter an account name first")
+                          }
+                        }}
                       />
                       <FormMessage />
                     </FormItem>
@@ -412,6 +449,7 @@ export function ElectricityBillFormDialog({
                           type="number"
                           min="0"
                           placeholder="1"
+                          readOnly
                           onKeyDown={blockNegativeKeys}
                           {...field}
                           className={inputClass}
@@ -446,7 +484,7 @@ export function ElectricityBillFormDialog({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ChargeField control={form.control} name="unitKvah" label="Unit (kVAh)" prefix="" highlight="yellow" />
                     <div className="space-y-1">
-                      <ChargeField control={form.control} name="kwhKvahRatio" label="kWh/kVAh Ratio" prefix="" suffix="%" highlight="blue" />
+                      <ChargeField control={form.control} name="kwhKvahRatio" label="kWh/kVAh Ratio (Power Factor)" prefix="" suffix="%" highlight="blue" />
                       {(watchedUnitKwh && watchedUnitKvah) && (
                         <p className="text-[10px] font-bold text-blue-500 italic px-1">
                           ({watchedUnitKwh} / {watchedUnitKvah}) × 100 = {((safeParse(watchedUnitKwh) / safeParse(watchedUnitKvah)) * 100).toFixed(2)}%
@@ -459,21 +497,8 @@ export function ElectricityBillFormDialog({
 
               <section>
                 <SectionTitle icon={<CreditCard className="h-4 w-4" />} title="Financials" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   <ChargeField control={form.control} name="unitPriceBasic" label="Unit Price Basic" />
-                  <FormField
-                    control={form.control}
-                    name="powerFactor"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className={labelClass}>Power Factor</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="0.00" className={inputClass} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
               </section>
 
@@ -558,9 +583,9 @@ export function ElectricityBillFormDialog({
 
               <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
                 <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="rounded-xl font-bold">Cancel</Button>
-                <Button type="submit" disabled={uploadMutation.isPending} className="bg-slate-900 hover:bg-slate-800 text-white px-8 rounded-xl font-bold">
-                  {uploadMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
-                  Save Bill Record
+                <Button type="submit" disabled={uploadMutation.isPending || updateMutation.isPending} className="bg-slate-900 hover:bg-slate-800 text-white px-8 rounded-xl font-bold">
+                  {(uploadMutation.isPending || updateMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
+                  {isEditing ? "Update Bill" : "Save Bill Record"}
                 </Button>
               </div>
             </form>

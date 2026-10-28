@@ -1,5 +1,5 @@
 import apiClient from '@/lib/api-client';
-import { AttendanceResponse, AttendanceDashboardCount, AttendanceWithSummaryResponse, MarkManualAttendanceDto, MarkAttendanceDto } from '@/types/attendance';
+import { AttendanceResponse, AttendanceDashboardCount, AttendanceWithSummaryResponse, MarkManualAttendanceDto, MarkAttendanceDto, UpdateMultipleAttendanceDto } from '@/types/attendance';
 import { toast } from 'sonner';
 
 /**
@@ -125,7 +125,7 @@ export const attendanceService = {
    * Quick update attendance status for multiple users
    * @param data - The mark attendance data for multiple users
    */
-  updateMultipleAttendance: async (data: { userIds: string[]; date: string; status: string }): Promise<void> => {
+  updateMultipleAttendance: async (data: UpdateMultipleAttendanceDto): Promise<void> => {
     try {
       await apiClient.put('/attendance/update/multiple', data);
       toast.success('Multiple attendance marked successfully');

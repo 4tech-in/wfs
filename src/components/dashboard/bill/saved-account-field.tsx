@@ -11,6 +11,7 @@ interface SavedAccountFieldProps {
   options: string[]
   placeholder: string
   inputClassName?: string
+  disabled?: boolean
   onChange: (value: string) => void
   onSave: (value: string) => void
 }
@@ -20,6 +21,7 @@ export function SavedAccountField({
   options,
   placeholder,
   inputClassName,
+  disabled = false,
   onChange,
   onSave,
 }: SavedAccountFieldProps) {
@@ -29,6 +31,7 @@ export function SavedAccountField({
   return (
     <div className="space-y-2">
       <select
+        disabled={disabled}
         value={showInput ? "__add__" : value}
         onChange={(event) => {
           if (event.target.value === "__add__") {
@@ -52,6 +55,7 @@ export function SavedAccountField({
         <div className="flex gap-2">
           <Input
             autoFocus
+            disabled={disabled}
             value={value}
             placeholder={placeholder}
             onChange={(event) => onChange(event.target.value)}
@@ -59,6 +63,7 @@ export function SavedAccountField({
           />
           <Button
             type="button"
+            disabled={disabled}
             variant="outline"
             size="icon"
             title="Save value"

@@ -133,11 +133,7 @@ export const docCenterService = {
       if (data.documentType) formData.append('documentType', data.documentType);
       
       if (data.metadata) {
-        Object.entries(data.metadata).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            formData.append(key, String(value));
-          }
-        });
+        formData.append('metadata', JSON.stringify(data.metadata));
       }
 
       if (data.files && data.files.length > 0) {

@@ -134,6 +134,14 @@ export function AttendanceTable({
             {status}
           </Badge>
         )
+      case 'Holiday':
+      case 'WeeklyOff':
+        return (
+          <Badge variant="outline" className="bg-violet-50 text-violet-600 border-violet-100/50 gap-1.5 px-3 py-1 rounded-full font-bold uppercase text-[10px]">
+            <Calendar className="h-3 w-3" />
+            {status}
+          </Badge>
+        )
       default:
         return (
           <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-100 gap-1.5 px-3 py-1 rounded-full font-bold uppercase text-[10px]">

@@ -169,7 +169,7 @@ export default function BillPage() {
     { accessorKey: "metadata.fppca", header: "FPPCA", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.fppca || "N/A" } },
     { accessorKey: "metadata.ed", header: "ED", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.ed || "N/A" } },
     { accessorKey: "metadata.fixedCharges", header: "Fix Charges", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.fixedCharges || "N/A" } },
-    { accessorKey: "metadata.powerFactor", header: "Power Factor", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.powerFactor || "N/A" } },
+    { accessorKey: "metadata.kwhKvahRatio", header: "kWh/kVAh Ratio (Power Factor)", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.kwhKvahRatio ? `${row.metadata.kwhKvahRatio}%` : "N/A" } },
     { accessorKey: "metadata.mcTax", header: "MC Tax", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.mcTax || "N/A" } },
     { accessorKey: "metadata.arrears", header: "Arrears", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.arrears || "N/A" } },
     { accessorKey: "metadata.totalAmount", header: "Total", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.totalAmount || "N/A" } },

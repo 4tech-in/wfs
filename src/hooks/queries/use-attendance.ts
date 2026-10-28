@@ -6,7 +6,8 @@ import {
   AttendanceDashboardCount, 
   AttendanceWithSummaryResponse,
   MarkManualAttendanceDto,
-  MarkAttendanceDto 
+  MarkAttendanceDto,
+  UpdateMultipleAttendanceDto,
 } from "@/types/attendance";
 
 /**
@@ -110,7 +111,7 @@ export function useUpdateMultipleAttendanceMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { userIds: string[]; date: string; status: string }) => 
+    mutationFn: (data: UpdateMultipleAttendanceDto) =>
       attendanceService.updateMultipleAttendance(data),
     onSuccess: () => {
       // Invalidate attendance queries to refresh data

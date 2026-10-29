@@ -174,7 +174,7 @@ export default function BillPage() {
     { accessorKey: "metadata.arrears", header: "Arrears", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.arrears || "N/A" } },
     { accessorKey: "metadata.totalAmount", header: "Total", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.totalAmount || "N/A" } },
     { accessorKey: "metadata.paidAmount", header: "Paid", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.paidAmount || "N/A" } },
-    { accessorKey: "metadata.paidOn", header: "Paid On", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.paidOn ? format(new Date(row.metadata.paidOn), "dd MMM yyyy") : "N/A" } },
+    { accessorKey: "metadata.dueDate", header: "Due Date", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.dueDate ? format(new Date(row.metadata.dueDate), "dd MMM yyyy") : "N/A" } },
     { accessorKey: "metadata.remarks", header: "Remarks", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.remarks || "N/A" } },
   ]
 

@@ -37,13 +37,6 @@ import { useDebounce } from "@/hooks/use-debounce"
 import { Vehicle } from "@/types/vehicle"
 import { fuelService } from "@/services/fuel-service"
 import { EmployeeSelect } from "@/components/employee/employee-select"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 const fuelFormSchema = z.object({
   fillingDate: z.string().min(1, "Date is required"),
@@ -419,17 +412,14 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Fuel Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select fuel type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Diesel">Diesel</SelectItem>
-                          <SelectItem value="Petrol">Petrol</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          readOnly
+                          aria-readonly="true"
+                          className="bg-slate-50/50 border-slate-200 text-slate-500 font-medium cursor-not-allowed"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -458,15 +448,15 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
                 />
                 <FormField
                   control={form.control}
-                  name="totalAmount"
+                  name="totalFuel"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total Amount</FormLabel>
+                      <FormLabel>Total Fuel (L)</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
                           step="0.01" 
-                          placeholder="3500.00" 
+                          placeholder="Enter total fuel"
                           {...field} 
                           onWheel={(e) => e.currentTarget.blur()}
                         />
@@ -480,15 +470,15 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="totalFuel"
+                  name="totalAmount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total Fuel (L)</FormLabel>
+                      <FormLabel>Total Amount</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
                           step="0.01" 
-                          placeholder="Enter total fuel" 
+                          placeholder="3500.00"
                           {...field} 
                           onWheel={(e) => e.currentTarget.blur()}
                         />

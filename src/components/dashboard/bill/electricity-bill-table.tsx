@@ -177,7 +177,7 @@ export function ElectricityBillTable({
               Paid
             </TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-r border-slate-100">
-              Paid On
+              Due Date
             </TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-r border-slate-100">
               Remarks
@@ -294,7 +294,7 @@ export function ElectricityBillTable({
                   </TableCell>
 
                   <TableCell className="py-4 font-bold text-slate-600 text-[13px] border-r border-slate-100">
-                    {formatDate(meta?.paidOn)}
+                    {formatDate(meta?.dueDate)}
                   </TableCell>
 
                   <TableCell className="py-4 text-slate-500 text-[12px] border-r border-slate-100 max-w-[150px] truncate">

@@ -6,10 +6,11 @@ import { DocCenterQueryParams, CreateDocDto, DeleteFilesDto, UpdateDocFilesDto }
 /**
  * Hook to fetch documents with optional filtering and search
  */
-export function useDocCenterQuery(params?: DocCenterQueryParams) {
+export function useDocCenterQuery(params?: DocCenterQueryParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: QUERY_KEYS.docCenter.list(params),
     queryFn: () => docCenterService.getAll(params),
+    enabled: options?.enabled ?? true,
   });
 }
 

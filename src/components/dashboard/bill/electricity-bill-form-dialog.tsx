@@ -62,7 +62,7 @@ const electricityBillSchema = z.object({
   acd: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   lastAcd: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   paidAmount: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
-  paidOn: z.string().optional(),
+  dueDate: z.string().optional(),
   paidUnitRate: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   remarks: z.string().optional(),
   files: z.array(z.instanceof(File)).optional(),
@@ -259,7 +259,7 @@ export function ElectricityBillFormDialog({
       acd: isEditing ? String(initialData?.acd ?? "") : "",
       lastAcd: isEditing ? String(initialData?.lastAcd ?? "") : "",
       paidAmount: isEditing ? String(initialData?.paidAmount ?? "") : "",
-      paidOn: isEditing ? String(initialData?.paidOn ?? "") : "",
+      dueDate: isEditing ? String(initialData?.dueDate ?? "") : "",
       paidUnitRate: isEditing ? String(initialData?.paidUnitRate ?? "") : "",
       remarks: isEditing ? String(initialData?.remarks ?? "") : "",
       files: [],
@@ -512,7 +512,7 @@ export function ElectricityBillFormDialog({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <ChargeField control={form.control} name="totalAmount" label="Total Amount" highlight="blue" />
                   <ChargeField control={form.control} name="paidAmount" label="Actual Paid" highlight="green" />
-                  <DatePickerField control={form.control} name="paidOn" label="Paid On" />
+                  <DatePickerField control={form.control} name="dueDate" label="Due Date" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-1">

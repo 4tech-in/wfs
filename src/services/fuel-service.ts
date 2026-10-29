@@ -34,6 +34,9 @@ export const fuelService = {
       formData.append('fuelType', data.fuelType);
       formData.append('ratePerLtr', String(data.ratePerLtr));
       formData.append('totalAmount', String(data.totalAmount));
+      if (data.totalFuel !== undefined) {
+        formData.append('totalFuel', String(data.totalFuel));
+      }
       formData.append('fillingDate', data.fillingDate);
       
       if (data.images && data.images.length > 0) {
@@ -68,6 +71,9 @@ export const fuelService = {
       formData.append('fuelType', data.fuelType);
       formData.append('ratePerLtr', String(data.ratePerLtr));
       formData.append('totalAmount', String(data.totalAmount));
+      if (data.totalFuel !== undefined) {
+        formData.append('totalFuel', String(data.totalFuel));
+      }
       formData.append('fillingDate', data.fillingDate);
       
       if (data.images && data.images.length > 0) {

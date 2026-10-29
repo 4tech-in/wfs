@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button"
 import { WaterBillFormDialog } from "@/components/dashboard/bill/water-bill-form-dialog"
 import { ElectricityBillFormDialog } from "@/components/dashboard/bill/electricity-bill-form-dialog"
 import { ElectricityTrendChart } from "@/components/dashboard/bill/electricity-trend-chart"
-import { useSingleDocQuery, useDeleteDocMutation } from "@/hooks/queries/use-doc-center"
+import { useSingleDocQuery, useDeleteDocMutation, useDocCenterQuery } from "@/hooks/queries/use-doc-center"
 import { WaterBillRecord, WaterBillMetadata } from "@/types/water-bill"
 import { ElectricityBillMetadata } from "@/types/electricity-bill"
 import { cn } from "@/lib/utils"
@@ -136,6 +136,18 @@ export default function BillDetailPage() {
   
   const { data: billData, isLoading } = useSingleDocQuery(id)
   const deleteMutation = useDeleteDocMutation()
+  const billMetadata = billData?.metadata as ElectricityBillMetadata | undefined
+  const accountSearch = String(billMetadata?.accountName || billMetadata?.accountNumber || "").trim()
+  const { data: latestElectricityData } = useDocCenterQuery({
+    documentType: "Electricity",
+    page: 1,
+    limit: 100,
+    search: accountSearch,
+    sortBy: "createdAt",
+    sortOrder: "desc",
+  }, {
+    enabled: billData?.documentType === "Electricity" && Boolean(accountSearch),
+  })
 
   if (isLoading) {
     return (
@@ -169,6 +181,19 @@ export default function BillDetailPage() {
   } as WaterBillRecord
 
   const meta = bill.metadata
+  const isElectricity = billData.documentType === "Electricity"
+  const latestElectricityBill = latestElectricityData?.data
+    .filter((candidate) => {
+      const candidateMeta = candidate.metadata as ElectricityBillMetadata | undefined
+      if (billMetadata?.accountNumber) {
+        return String(candidateMeta?.accountNumber || "").trim() === String(billMetadata.accountNumber).trim()
+      }
+      return String(candidateMeta?.accountName || "").trim().toLocaleLowerCase()
+        === String(billMetadata?.accountName || "").trim().toLocaleLowerCase()
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+  const latestElectricityMeta = (latestElectricityBill?.metadata || meta) as ElectricityBillMetadata
+  const latestElectricityCreatedAt = latestElectricityBill?.createdAt || bill.createdAt
   const isPaid = safeParse(meta?.paidAmount) >= safeParse(meta?.totalAmount)
   const isAnyAvg = String(meta?.isFromAverage) === "true" || String(meta?.isToAverage) === "true"
 
@@ -335,13 +360,26 @@ export default function BillDetailPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
                   <Building2 className="h-4 w-4 text-blue-500" />
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Connection Details</h3>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">
+                    {isElectricity ? "Latest Bill Details" : "Connection Details"}
+                  </h3>
                 </div>
                 <div className="grid grid-cols-2 gap-y-8 gap-x-12">
-                  <InfoBlock label="Account Holder" value={meta?.accountName} />
-                  <InfoBlock label="Account No" value={meta?.accountNumber} highlight="blue" />
-                  <InfoBlock label="Bill Duration" value={meta?.billPeriod ? `${meta.billPeriod} Months` : "—"} />
-                  <InfoBlock label="Pipe Size" value={meta?.connectionSize} />
+                  {isElectricity ? (
+                    <>
+                      <InfoBlock label="Account Holder" value={latestElectricityMeta.accountName} />
+                      <InfoBlock label="Account No" value={latestElectricityMeta.accountNumber} highlight="blue" />
+                      <InfoBlock label="Bill Duration" value={latestElectricityMeta.months ? `${latestElectricityMeta.months} Months` : "—"} />
+                      <InfoBlock label="Last Entered" value={formatDate(latestElectricityCreatedAt)} />
+                    </>
+                  ) : (
+                    <>
+                      <InfoBlock label="Account Holder" value={meta?.accountName} />
+                      <InfoBlock label="Account No" value={meta?.accountNumber} highlight="blue" />
+                      <InfoBlock label="Bill Duration" value={meta?.billPeriod ? `${meta.billPeriod} Months` : "—"} />
+                      <InfoBlock label="Pipe Size" value={meta?.connectionSize} />
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -349,13 +387,29 @@ export default function BillDetailPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
                   <History className="h-4 w-4 text-indigo-500" />
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Meter Readings</h3>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">
+                    {isElectricity ? "Consumption Details" : "Meter Readings"}
+                  </h3>
                 </div>
                 <div className="grid grid-cols-2 gap-y-8 gap-x-12">
-                  <InfoBlock label="Old Reading" value={meta?.oldReading} />
-                  <InfoBlock label="New Reading" value={meta?.newReading} />
-                  <InfoBlock label="Units Consumed" value={meta?.unit} highlight="blue" />
-                  <InfoBlock label="Actual Reading" value={meta?.actualReading} highlight="amber" subValue="Field Verified" />
+                  {isElectricity ? (
+                    <>
+                      <InfoBlock label="Units (kWh)" value={latestElectricityMeta.unitKwh} highlight="blue" />
+                      <InfoBlock label="Units (kVAh)" value={latestElectricityMeta.unitKvah} highlight="amber" />
+                      <InfoBlock
+                        label="Power Factor"
+                        value={latestElectricityMeta.kwhKvahRatio ? `${latestElectricityMeta.kwhKvahRatio}%` : "—"}
+                      />
+                      <InfoBlock label="Basic Unit Price" value={formatCurrency(latestElectricityMeta.unitPriceBasic)} />
+                    </>
+                  ) : (
+                    <>
+                      <InfoBlock label="Old Reading" value={meta?.oldReading} />
+                      <InfoBlock label="New Reading" value={meta?.newReading} />
+                      <InfoBlock label="Units Consumed" value={meta?.unit} highlight="blue" />
+                      <InfoBlock label="Actual Reading" value={meta?.actualReading} highlight="amber" subValue="Field Verified" />
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -366,18 +420,29 @@ export default function BillDetailPage() {
                   <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Bill Schedule</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-y-8 gap-x-12">
-                  <InfoBlock label="Bill Date" value={formatDate(meta?.billDate)} />
-                  <InfoBlock label="Payment Due" value={formatDate(meta?.dueDate)} highlight="red" />
-                  <InfoBlock 
-                    label="Service Start" 
-                    value={(String(meta?.isFromAverage) === "true") ? "Billed on Average" : formatDate(meta?.billFrom)} 
-                    highlight={(String(meta?.isFromAverage) === "true") ? "amber" : undefined}
-                  />
-                  <InfoBlock 
-                    label="Service End" 
-                    value={(String(meta?.isToAverage) === "true") ? "Billed on Average" : formatDate(meta?.billTo)} 
-                    highlight={(String(meta?.isToAverage) === "true") ? "amber" : undefined}
-                  />
+                  {isElectricity ? (
+                    <>
+                      <InfoBlock label="Service Start" value={formatDate(latestElectricityMeta.billFrom)} />
+                      <InfoBlock label="Service End" value={formatDate(latestElectricityMeta.billTo)} />
+                      <InfoBlock label="Due Date" value={formatDate(latestElectricityMeta.dueDate)} highlight="red" />
+                      <InfoBlock label="Amount Paid" value={formatCurrency(latestElectricityMeta.paidAmount)} highlight="blue" />
+                    </>
+                  ) : (
+                    <>
+                      <InfoBlock label="Bill Date" value={formatDate(meta?.billDate)} />
+                      <InfoBlock label="Payment Due" value={formatDate(meta?.dueDate)} highlight="red" />
+                      <InfoBlock
+                        label="Service Start"
+                        value={(String(meta?.isFromAverage) === "true") ? "Billed on Average" : formatDate(meta?.billFrom)}
+                        highlight={(String(meta?.isFromAverage) === "true") ? "amber" : undefined}
+                      />
+                      <InfoBlock
+                        label="Service End"
+                        value={(String(meta?.isToAverage) === "true") ? "Billed on Average" : formatDate(meta?.billTo)}
+                        highlight={(String(meta?.isToAverage) === "true") ? "amber" : undefined}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -389,39 +454,49 @@ export default function BillDetailPage() {
                   <div className="h-10 w-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-blue-600 shadow-sm">
                     <CreditCard className="h-5 w-5" />
                   </div>
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">Financial Breakdown</h3>
-                </div>
-                
-                <div className="space-y-2 mb-10">
-                  <DetailRowSmall label="Water Consumption Charges" value={formatCurrency(meta?.currentWaterCharges)} />
-                  <DetailRowSmall label="Maintenance Charges" value={formatCurrency(meta?.maintenanceCharges)} />
-                  <DetailRowSmall label="Sewerage Cess" value={formatCurrency(meta?.sewerageCess)} />
-                  <DetailRowSmall label="Meter Rental" value={formatCurrency(meta?.meterRentals)} />
-                  <DetailRowSmall label="Garbage Collection" value={formatCurrency(meta?.garbageCharges)} />
-                  <DetailRowSmall label="MC Tax" value={formatCurrency(meta?.mcTax)} />
-                  <DetailRowSmall label="Sundry / Other Charges" value={formatCurrency(meta?.sundryCharges)} />
-                  <DetailRowSmall label="Outstanding Arrears" value={formatCurrency(meta?.arrears)} />
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">
+                    {isElectricity ? "Payment Summary" : "Financial Breakdown"}
+                  </h3>
                 </div>
 
-                <div className="pt-6 border-t border-slate-200 space-y-2 mb-10">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">Late Payment Surcharge</span>
-                    <span className="text-sm font-bold text-rose-500">+{formatCurrency(meta?.latePaymentSurcharge)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">Previous Adjustments</span>
-                    <span className="text-sm font-bold text-blue-500">-{formatCurrency(meta?.adjPrevBill)}</span>
-                  </div>
-                </div>
+                {!isElectricity && (
+                  <>
+                    <div className="space-y-2 mb-10">
+                      <DetailRowSmall label="Water Consumption Charges" value={formatCurrency(meta?.currentWaterCharges)} />
+                      <DetailRowSmall label="Maintenance Charges" value={formatCurrency(meta?.maintenanceCharges)} />
+                      <DetailRowSmall label="Sewerage Cess" value={formatCurrency(meta?.sewerageCess)} />
+                      <DetailRowSmall label="Meter Rental" value={formatCurrency(meta?.meterRentals)} />
+                      <DetailRowSmall label="Garbage Collection" value={formatCurrency(meta?.garbageCharges)} />
+                      <DetailRowSmall label="MC Tax" value={formatCurrency(meta?.mcTax)} />
+                      <DetailRowSmall label="Sundry / Other Charges" value={formatCurrency(meta?.sundryCharges)} />
+                      <DetailRowSmall label="Outstanding Arrears" value={formatCurrency(meta?.arrears)} />
+                    </div>
 
-                <div className="pt-8 border-t border-slate-200 flex items-center justify-between">
+                    <div className="pt-6 border-t border-slate-200 space-y-2 mb-10">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-widest text-slate-400">Late Payment Surcharge</span>
+                        <span className="text-sm font-bold text-rose-500">+{formatCurrency(meta?.latePaymentSurcharge)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-widest text-slate-400">Previous Adjustments</span>
+                        <span className="text-sm font-bold text-blue-500">-{formatCurrency(meta?.adjPrevBill)}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className={cn("flex items-center justify-between", !isElectricity && "pt-8 border-t border-slate-200")}>
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Final Payable</span>
                     <span className="text-3xl font-black text-slate-900">{formatCurrency(meta?.totalAmount)}</span>
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Paid on Date</span>
-                    <span className="text-sm font-bold text-slate-600">{formatDate(meta?.paidOn)}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                      {isElectricity ? "Due Date" : "Paid on Date"}
+                    </span>
+                    <span className="text-sm font-bold text-slate-600">
+                      {formatDate(isElectricity ? latestElectricityMeta.dueDate : meta?.paidOn)}
+                    </span>
                   </div>
                 </div>
               </div>

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { InfiniteScrollSelect } from "@/components/ui/infinite-scroll-select"
-import { useEmployeesDropdownInfiniteQuery } from "@/hooks/queries/use-employees-query"
+import { useEmployeeQuery, useEmployeesDropdownInfiniteQuery } from "@/hooks/queries/use-employees-query"
 import { useDebounce } from "@/hooks/use-debounce"
 import { EmployeeDropdownItem } from "@/types/employee"
 
@@ -38,9 +38,33 @@ export function EmployeeSelect({
     hasBeenOpened || !!value
   )
 
+  const { data: selectedEmployeeData } = useEmployeeQuery(value || null)
+
+  const selectedEmployee = React.useMemo<EmployeeDropdownItem | null>(() => {
+    if (!value || !selectedEmployeeData) return null
+
+    const selectedId = selectedEmployeeData._id || selectedEmployeeData.id
+    if (!selectedId) return null
+
+    return {
+      _id: selectedId,
+      name: selectedEmployeeData.name,
+      otherName: selectedEmployeeData.otherName,
+      uniqueId: selectedEmployeeData.uniqueId,
+      employeeId:
+        selectedEmployeeData.employeeObjId?.employeeId ||
+        selectedEmployeeData.employeeId ||
+        String(selectedEmployeeData.uniqueId || ""),
+    }
+  }, [selectedEmployeeData, value])
+
   const allEmployees = React.useMemo(() => {
-    return data?.pages.flatMap((page) => page.data) ?? []
-  }, [data])
+    const employees = data?.pages.flatMap((page) => page.data) ?? []
+    if (!selectedEmployee || employees.some((employee) => employee._id === selectedEmployee._id)) {
+      return employees
+    }
+    return [selectedEmployee, ...employees]
+  }, [data, selectedEmployee])
 
   return (
     <InfiniteScrollSelect<EmployeeDropdownItem>

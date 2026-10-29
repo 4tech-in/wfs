@@ -377,8 +377,8 @@ export function MarkMultipleAttendanceDialog({ trigger }: MarkMultipleAttendance
                 render={({ field }) => {
                   const selectedDates = Array.isArray(field.value)
                     ? field.value
-                    : field.value instanceof Date
-                      ? [field.value]
+                    : (field.value as unknown) instanceof Date
+                      ? [field.value as unknown as Date]
                       : []
 
                   return (

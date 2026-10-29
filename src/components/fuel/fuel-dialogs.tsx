@@ -578,6 +578,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
 
 const balanceFormSchema = z.object({
   amount: z.string().min(1, "Amount is required").refine(val => !isNaN(parseFloat(val)), "Must be a number"),
+  date: z.string().min(1, "Date is required"),
   note: z.string().optional(),
 })
 
@@ -588,7 +589,7 @@ interface AddCardBalanceDialogProps {
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
   editId?: string
-  initialValues?: { amount: number; note?: string }
+  initialValues?: { amount: number; date?: string; createdAt?: string; note?: string }
 }
 
 export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, initialValues }: AddCardBalanceDialogProps) {
@@ -599,6 +600,7 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, in
     resolver: zodResolver(balanceFormSchema),
     defaultValues: {
       amount: "",
+      date: format(new Date(), "yyyy-MM-dd"),
       note: "",
     },
   })
@@ -607,11 +609,17 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, in
     if (open) {
       form.reset({
         amount: initialValues?.amount !== undefined ? String(initialValues.amount) : "",
+        date: initialValues?.date
+          ? format(new Date(initialValues.date), "yyyy-MM-dd")
+          : initialValues?.createdAt
+            ? format(new Date(initialValues.createdAt), "yyyy-MM-dd")
+            : format(new Date(), "yyyy-MM-dd"),
         note: initialValues?.note || "",
       })
     } else {
       form.reset({
         amount: "",
+        date: format(new Date(), "yyyy-MM-dd"),
         note: "",
       })
     }
@@ -621,6 +629,7 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, in
     if (!newOpen) {
       form.reset({
         amount: "",
+        date: format(new Date(), "yyyy-MM-dd"),
         note: "",
       })
     }
@@ -634,12 +643,14 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, in
           id: editId,
           data: {
             amount: parseFloat(data.amount),
+            date: data.date,
             note: data.note,
           }
         })
       } else {
         await addBalanceMutation.mutateAsync({
           amount: parseFloat(data.amount),
+          date: data.date,
           note: data.note,
         })
       }
@@ -670,6 +681,19 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, in
                   <FormLabel>Amount (₹)</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g. 5000" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -708,7 +732,7 @@ export function AddCardBalanceDialog({ open, onOpenChange, onSuccess, editId, in
 interface RechargeHistoryDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onEditClick: (recharge: { _id: string; amount: number; note?: string }) => void
+  onEditClick: (recharge: FuelCardEntry) => void
 }
 
 export function RechargeHistoryDialog({ open, onOpenChange, onEditClick }: RechargeHistoryDialogProps) {
@@ -743,7 +767,7 @@ export function RechargeHistoryDialog({ open, onOpenChange, onEditClick }: Recha
                         ₹ {item.amount.toLocaleString()}
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium">
-                        {format(new Date(item.createdAt), "dd MMM yyyy")}
+                        {format(new Date(item.date || item.createdAt), "dd MMM yyyy")}
                       </span>
                     </div>
                     {item.note && (

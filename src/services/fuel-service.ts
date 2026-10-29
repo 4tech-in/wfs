@@ -2,6 +2,8 @@ import apiClient from '@/lib/api-client';
 import { FuelCardStats, FuelExpensesResponse, FuelQueryParams, CreateFuelDto, FuelCardsResponse, FuelExportResponse } from '@/types/fuel';
 import { toast } from 'sonner';
 
+type CardBalanceDto = { amount: number; date: string; note?: string };
+
 /**
  * Fuel Service to handle fuel-related API operations
  */
@@ -114,7 +116,7 @@ export const fuelService = {
   /**
    * Add balance to fuel card
    */
-  addCardBalance: async (data: { amount: number; note?: string }): Promise<void> => {
+  addCardBalance: async (data: CardBalanceDto): Promise<void> => {
     try {
       await apiClient.post<void, void>('/fuel-card', data);
       toast.success('Card balance added successfully');
@@ -139,7 +141,7 @@ export const fuelService = {
   /**
    * Update a fuel card balance entry
    */
-  updateCardBalance: async (id: string, data: { amount: number; note?: string }): Promise<void> => {
+  updateCardBalance: async (id: string, data: CardBalanceDto): Promise<void> => {
     try {
       await apiClient.patch(`/fuel-card/${id}`, data);
       toast.success('Card balance updated successfully');

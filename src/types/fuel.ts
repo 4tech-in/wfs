@@ -77,6 +77,7 @@ export interface CreateFuelDto {
 export interface FuelCardEntry {
   _id: string;
   amount: number;
+  date?: string;
   note?: string;
   createdAt: string;
   updatedAt: string;

@@ -75,7 +75,7 @@ export function useAddCardBalanceMutation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (data: { amount: number; note?: string }) => fuelService.addCardBalance(data),
+    mutationFn: (data: { amount: number; date: string; note?: string }) => fuelService.addCardBalance(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.stats() });
       queryClient.invalidateQueries({ queryKey: ['fuel'] });
@@ -97,7 +97,7 @@ export function useUpdateCardBalanceMutation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { amount: number; note?: string } }) => 
+    mutationFn: ({ id, data }: { id: string; data: { amount: number; date: string; note?: string } }) =>
       fuelService.updateCardBalance(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FUEL_QUERY_KEYS.all });

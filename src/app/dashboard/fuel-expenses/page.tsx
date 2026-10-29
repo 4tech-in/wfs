@@ -14,7 +14,7 @@ import { InfiniteScrollSelect } from "@/components/ui/infinite-scroll-select"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import { DateRange } from "react-day-picker"
 import { Vehicle } from "@/types/vehicle"
-import { FuelRecord } from "@/types/fuel"
+import { FuelCardEntry, FuelRecord } from "@/types/fuel"
 import { Card } from "@/components/ui/card"
 import { format } from "date-fns"
 import * as XLSX from "xlsx"
@@ -39,7 +39,7 @@ export default function FuelExpensePage() {
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [isBalanceOpen, setIsBalanceOpen] = React.useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
-  const [editingRecharge, setEditingRecharge] = React.useState<{ _id: string; amount: number; note?: string } | null>(null)
+  const [editingRecharge, setEditingRecharge] = React.useState<FuelCardEntry | null>(null)
   const [editingFuel, setEditingFuel] = React.useState<FuelRecord | null>(null)
   const [searchTerm, setSearchTerm] = React.useState("")
   const debouncedSearch = useDebounce(searchTerm, 400)
@@ -415,7 +415,12 @@ export default function FuelExpensePage() {
           }
         }}
         editId={editingRecharge?._id}
-        initialValues={editingRecharge ? { amount: editingRecharge.amount, note: editingRecharge.note } : undefined}
+        initialValues={editingRecharge ? {
+          amount: editingRecharge.amount,
+          date: editingRecharge.date,
+          createdAt: editingRecharge.createdAt,
+          note: editingRecharge.note,
+        } : undefined}
       />
 
       <RechargeHistoryDialog

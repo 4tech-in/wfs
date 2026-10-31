@@ -374,11 +374,15 @@ export function SinglePayslipPdfPage({ item, month, defaultCompany }: SinglePays
   const otRate = item.overtimeRate ?? 0
 
   // Financials
+  const basicSalaryPolicy = item.basicSalary ?? 0
   const basic = item.payrollDetails?.basic ?? (item.basePay || 0)
   const hra = item.payrollDetails?.hra ?? 0
   const conveyance = item.payrollDetails?.conveyance ?? 0
   const otPay = item.overtimePay ?? 0
   const grossEarnings = item.grossEarnings ?? (basic + hra + conveyance + otPay)
+
+  // Half-day pay comes from backend
+  const halfDaySalary = item.halfDaySalary ?? 0
 
   const pfEmployee = item.payrollDetails?.pfEmployee ?? 0
   const esiEmployee = item.payrollDetails?.esiEmployee ?? 0
@@ -495,6 +499,12 @@ export function SinglePayslipPdfPage({ item, month, defaultCompany }: SinglePays
         <View style={styles.tableBodyRow}>
           {/* Earnings side */}
           <View style={[styles.tableBodyCol, styles.tableBodyColDivider]}>
+            {basicSalaryPolicy > 0 && (
+              <View style={styles.itemRow}>
+                <Text style={[styles.itemLabel, { color: '#4338ca', fontStyle: 'italic' }]}>Basic Salary (Policy)</Text>
+                <Text style={[styles.itemValue, { color: '#3730a3' }]}>₹{basicSalaryPolicy.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+              </View>
+            )}
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Basic Pay</Text>
               <Text style={styles.itemValue}>₹{basic.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
@@ -509,6 +519,17 @@ export function SinglePayslipPdfPage({ item, month, defaultCompany }: SinglePays
               <View style={styles.itemRow}>
                 <Text style={styles.itemLabel}>Conveyance Allowance</Text>
                 <Text style={styles.itemValue}>₹{conveyance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+              </View>
+            )}
+            {halfDays > 0 && halfDaySalary > 0 && (
+              <View style={styles.itemRow}>
+                <View>
+                  <Text style={[styles.itemLabel, { color: '#92400e' }]}>Half Day Pay ({halfDays} day{halfDays > 1 ? 's' : ''})</Text>
+                  <Text style={{ fontSize: 7, color: '#d97706' }}>
+                    (₹{basicSalaryPolicy.toLocaleString()} ÷ {(item as any).totalWorkingDays ?? 0} days × 0.5)
+                  </Text>
+                </View>
+                <Text style={[styles.itemValue, { color: '#92400e' }]}>₹{halfDaySalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
               </View>
             )}
             {otPay > 0 && (

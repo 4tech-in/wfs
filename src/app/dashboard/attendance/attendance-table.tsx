@@ -365,34 +365,15 @@ export function AttendanceTable({
               return;
             }
 
-            if (((punchIn && !punchOut) || (!punchIn && punchOut)) && onMarkManual) {
-              onMarkManual({
-                employeeId: user._id,
-                companyId: user.company?._id,
-                date: new Date(recordDate),
-                status: status,
-                punchIn: punchIn,
-                punchOut: punchOut
-              });
-              return;
-            }
-
-            if (punchIn || punchOut) {
-              markAttendanceMutation.mutate({
-                userIds: [user._id],
-                date: recordDate,
-                status: status,
-                punchIn,
-                punchOut
-              });
-            } else {
-              onMarkManual?.({
-                employeeId: user._id,
-                companyId: user.company?._id,
-                date: new Date(recordDate),
-                status: status
-              });
-            }
+            // For Present: always open the manual dialog so the user can change timing
+            onMarkManual?.({
+              employeeId: user._id,
+              companyId: user.company?._id,
+              date: new Date(recordDate),
+              status: status,
+              punchIn: punchIn,
+              punchOut: punchOut
+            });
           };
 
           return (

@@ -72,6 +72,8 @@ export interface PayrollCalculationResult {
   grossEarnings?: number;
   totalDeductions?: number;
   netPay: number;
+  basicSalary?: number;       // Configured fixed monthly/hourly/daily salary from payroll policy
+  halfDaySalary?: number;     // Earnings portion from half-day attendance (hours worked × hourly rate)
   payrollDetails?: {
     basic?: number;
     hra?: number;
@@ -121,6 +123,8 @@ export interface BulkPayrollEmployeeItem {
   totalOvertimeHours?: number;
   overtimeRate?: number;
   totalPaidDays?: number;
+  basicSalary?: number;       // Configured fixed monthly/hourly/daily salary from payroll policy
+  halfDaySalary?: number;     // Earnings portion from half-day attendance (hours worked × hourly rate)
   basePay?: number;
   overtimePay?: number;
   grossEarnings?: number;

@@ -191,7 +191,7 @@ export function CalculateSalaryDialog({
                      </span>
                   </div>
 
-                  <div className="pt-4 border-t border-emerald-100/50 grid grid-cols-3 gap-2 text-center">
+                  <div className="pt-4 border-t border-emerald-100/50 grid grid-cols-4 gap-2 text-center">
                     <div className="bg-white/60 p-2 rounded-xl border border-emerald-100/40">
                       <p className="text-[9px] font-bold text-emerald-600/70 uppercase">Paid Days</p>
                       <p className="text-sm font-black text-emerald-950">{calculationResult?.totalPaidDays || "0"}</p>
@@ -204,11 +204,17 @@ export function CalculateSalaryDialog({
                       <p className="text-[9px] font-bold text-emerald-600/70 uppercase">Present</p>
                       <p className="text-sm font-black text-emerald-950">{calculationResult?.presentDays ?? 0} d</p>
                     </div>
+                    <div className="bg-white/60 p-2 rounded-xl border border-indigo-100/40 bg-indigo-50/40">
+                      <p className="text-[9px] font-bold text-indigo-500/80 uppercase">Basic Salary</p>
+                      <p className="text-sm font-black text-indigo-950">
+                        ₹{(calculationResult?.basicSalary ?? calculationResult?.rate ?? 0).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
 
                   {calculationResult?.payrollDetails && (
                     <div className="pt-3 border-t border-emerald-100/50 space-y-2">
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Earnings & Deductions</p>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Earnings &amp; Deductions</p>
                        <div className="grid grid-cols-3 gap-2">
                           <div className="bg-white/70 p-2 rounded-lg border border-emerald-100/30">
                              <p className="text-[9px] font-bold text-slate-400 uppercase">Basic</p>
@@ -222,6 +228,17 @@ export function CalculateSalaryDialog({
                              <p className="text-[9px] font-bold text-slate-400 uppercase">PF / Ded</p>
                              <p className="text-xs font-black text-slate-700">₹{calculationResult.totalDeductions || calculationResult.payrollDetails.pfEmployee || 0}</p>
                           </div>
+                          {(calculationResult.halfDays ?? 0) > 0 && (calculationResult.halfDaySalary ?? 0) > 0 && (
+                            <div className="bg-amber-50/70 p-2 rounded-lg border border-amber-100/40 col-span-3">
+                              <p className="text-[9px] font-bold text-amber-600 uppercase">Half Day Pay ({calculationResult.halfDays} day{(calculationResult.halfDays ?? 0) > 1 ? 's' : ''})</p>
+                              <p className="text-xs font-black text-amber-900">
+                                ₹{(calculationResult.halfDaySalary ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                <span className="text-[9px] font-medium text-amber-600 ml-1">
+                                  (₹{(calculationResult.basicSalary ?? 0).toLocaleString()} ÷ {calculationResult.totalWorkingDays ?? 0} days × 0.5)
+                                </span>
+                              </p>
+                            </div>
+                          )}
                        </div>
                     </div>
                   )}

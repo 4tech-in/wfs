@@ -126,11 +126,16 @@ function SinglePayslipCard({
   const otRate = item.overtimeRate ?? 0
 
   // Financials
+  const basicSalaryPolicy = item.basicSalary ?? 0   // configured salary from payroll policy (backend)
   const basic = item.payrollDetails?.basic ?? (item.basePay || 0)
   const hra = item.payrollDetails?.hra ?? 0
   const conveyance = item.payrollDetails?.conveyance ?? 0
   const otPay = item.overtimePay ?? 0
   const grossEarnings = item.grossEarnings ?? (basic + hra + conveyance + otPay)
+
+  // Half-day pay: comes directly from backend (correctly calculated as basicSalary/workingDays × 0.5 × halfDays)
+  const halfDaySalary = item.halfDaySalary ?? 0
+  const rate = (item as any).rate ?? 0
 
   const pfEmployee = item.payrollDetails?.pfEmployee ?? 0
   const esiEmployee = item.payrollDetails?.esiEmployee ?? 0
@@ -258,6 +263,12 @@ function SinglePayslipCard({
               <span>Amount (₹)</span>
             </div>
             <div className="p-3 space-y-1.5 divide-y divide-slate-100 text-[11px]">
+              {basicSalaryPolicy > 0 && (
+                <div className="flex justify-between pt-1">
+                  <span className="text-slate-500 italic">Basic Salary (Policy)</span>
+                  <span className="font-bold text-indigo-700">₹{basicSalaryPolicy.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
               <div className="flex justify-between pt-1">
                 <span className="text-slate-600">Basic Pay</span>
                 <span className="font-bold text-slate-900">₹{basic.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
@@ -272,6 +283,17 @@ function SinglePayslipCard({
                 <div className="flex justify-between pt-1.5">
                   <span className="text-slate-600">Conveyance Allowance</span>
                   <span className="font-bold text-slate-900">₹{conveyance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              {halfDays > 0 && halfDaySalary > 0 && (
+                <div className="flex justify-between pt-1.5">
+                  <div>
+                    <span className="text-amber-700 block">Half Day Pay ({halfDays} day{halfDays > 1 ? 's' : ''})</span>
+                    <span className="text-[9px] text-amber-500">
+                      (₹{basicSalaryPolicy.toLocaleString()} ÷ {(item as any).totalWorkingDays ?? 0} days × 0.5)
+                    </span>
+                  </div>
+                  <span className="font-bold text-amber-700 self-center">₹{halfDaySalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
               {otPay > 0 && (

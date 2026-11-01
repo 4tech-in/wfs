@@ -27,12 +27,21 @@ export const salaryService = {
   },
 
   /**
-   * Get all employee salaries with pagination
+   * Get all employee salaries with pagination and search
    */
-  getSalaries: async (page: number = 1, limit: number = 10): Promise<SalaryListResponse> => {
+  getSalaries: async (
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    salaryType?: string
+  ): Promise<SalaryListResponse> => {
     try {
+      const params: any = { page, limit };
+      if (search && search.trim()) params.search = search.trim();
+      if (salaryType && salaryType !== "all") params.salaryType = salaryType;
+
       return await apiClient.get<void, SalaryListResponse>('/employee-salary/get', {
-        params: { page, limit }
+        params
       });
     } catch (error: unknown) {
       toast.error('Failed to fetch salaries');

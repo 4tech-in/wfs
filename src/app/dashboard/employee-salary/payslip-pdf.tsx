@@ -1,13 +1,14 @@
-import React from "react"
 import { 
   Document, 
   Page, 
   Text, 
   View, 
   StyleSheet, 
-  pdf 
+  pdf,
+  Image as PdfImage 
 } from "@react-pdf/renderer"
 import { BulkPayrollEmployeeItem, PayrollCalculationResult } from "@/types/salary"
+import { LOGO_GE_BASE64 } from "./logo-constant"
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -90,6 +91,12 @@ const styles = StyleSheet.create({
     color: "#020617",
     textTransform: "uppercase",
     marginBottom: 2,
+  },
+  companyLogo: {
+    width: 125,
+    height: 46,
+    objectFit: "contain",
+    marginBottom: 4,
   },
   companySubtitle: {
     fontSize: 8.5,
@@ -353,7 +360,12 @@ export function SinglePayslipPdfPage({ item, month, defaultCompany }: SinglePays
   const displayMonth = getFormattedMonthYear((item as any).month || month)
   const companyName = item.companyName || defaultCompany || "GOEL ENTERPRISES"
   const employeeName = item.employeeName || "Employee"
-  const employeeCode = item.employeeCode || "N/A"
+  const employeeCode =
+    item.employeeCode ||
+    (item as any).employeeIdDoc?.employeeId ||
+    (item as any).employeeObjId?.employeeId ||
+    ((item as any).uniqueId ? String((item as any).uniqueId) : "") ||
+    "N/A"
   const designation = item.designation || "Staff"
   const department = item.department || "Operations"
   const doj = item.doj || "N/A"
@@ -393,10 +405,10 @@ export function SinglePayslipPdfPage({ item, month, defaultCompany }: SinglePays
 
   return (
     <Page size="A4" style={styles.page}>
-      {/* Header - No Logo as requested */}
+      {/* Header with Logo */}
       <View style={styles.headerContainer}>
         <View>
-          <Text style={styles.companyTitle}>{companyName}</Text>
+          <PdfImage src={LOGO_GE_BASE64} style={styles.companyLogo} />
           <Text style={styles.companySubtitle}>Industrial & Corporate Services • Payroll Division</Text>
           <Text style={styles.companySubtitle}>Official Salary Slip • Regulated Employment Standards</Text>
         </View>

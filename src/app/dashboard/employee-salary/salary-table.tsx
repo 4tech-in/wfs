@@ -23,6 +23,8 @@ interface SalaryTableProps {
   pagination: PaginationState
   onPaginationChange: (pagination: PaginationState) => void
   totalItems?: number
+  search?: string
+  onSearchChange?: (value: string) => void
   onDelete?: (userId: string) => void
   onEdit?: (item: SalaryListItem) => void
 }
@@ -33,6 +35,8 @@ export function SalaryTable({
   pagination,
   onPaginationChange,
   totalItems,
+  search,
+  onSearchChange,
   onDelete,
   onEdit
 }: SalaryTableProps) {
@@ -73,21 +77,39 @@ export function SalaryTable({
     {
       accessorKey: "userId",
       header: "Employee",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100/50">
-            <User className="h-4 w-4" />
+      cell: ({ row }) => {
+        const emp = getEmployeeData(row.original) as any;
+        const empCode = emp?.employeeObjId?.employeeId || emp?.employeeId;
+        const displayName = emp?.otherName || emp?.name || "Unknown";
+        return (
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100/50 shrink-0">
+              <User className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-slate-900 line-clamp-1">
+                {displayName}
+              </span>
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">
+                {empCode && (
+                  <span className="text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-mono font-semibold">
+                    {empCode}
+                  </span>
+                )}
+                {emp?.uniqueId && (
+                  <span>#{emp.uniqueId}</span>
+                )}
+                {emp?.department && (
+                  <>
+                    <span>&bull;</span>
+                    <span className="text-slate-500 font-medium">{emp.department}</span>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-slate-900 line-clamp-1">
-              {getEmployeeData(row.original)?.name || "Unknown"}
-            </span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-              {getEmployeeData(row.original)?.uniqueId || "N/A"}
-            </span>
-          </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       accessorKey: "type",
@@ -184,6 +206,9 @@ export function SalaryTable({
       pagination={pagination}
       onPaginationChange={onPaginationChange}
       totalItems={totalItems}
+      searchValue={search}
+      onSearchChange={onSearchChange}
+      searchPlaceholder="Search by name, unique ID, employee code, department..."
       showSrNo={true}
     />
 

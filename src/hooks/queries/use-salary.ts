@@ -3,12 +3,17 @@ import { salaryService } from "@/services/salary-service";
 import { SalaryPayload, SalaryListResponse, PayrollCalculationResult, BulkPayrollCalculationResult } from "@/types/salary";
 
 /**
- * Hook to fetch all employee salaries with pagination
+ * Hook to fetch all employee salaries with pagination and search
  */
-export function useSalariesQuery(page: number = 1, limit: number = 10) {
+export function useSalariesQuery(
+  page: number = 1,
+  limit: number = 10,
+  search?: string,
+  salaryType?: string
+) {
   return useQuery<SalaryListResponse>({
-    queryKey: ['salaries', { page, limit }],
-    queryFn: () => salaryService.getSalaries(page, limit),
+    queryKey: ['salaries', { page, limit, search, salaryType }],
+    queryFn: () => salaryService.getSalaries(page, limit, search, salaryType),
   });
 }
 

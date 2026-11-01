@@ -105,7 +105,12 @@ function SinglePayslipCard({
   const displayMonth = getFormattedMonthYear((item as any).month || month)
   const companyName = item.companyName || defaultCompany || "GOEL ENTERPRISES"
   const employeeName = item.employeeName || "Employee"
-  const employeeCode = item.employeeCode || "N/A"
+  const employeeCode =
+    item.employeeCode ||
+    (item as any).employeeIdDoc?.employeeId ||
+    (item as any).employeeObjId?.employeeId ||
+    ((item as any).uniqueId ? String((item as any).uniqueId) : "") ||
+    "N/A"
   const designation = item.designation || "Staff"
   const department = item.department || "Operations"
   const doj = item.doj || "N/A"
@@ -149,9 +154,11 @@ function SinglePayslipCard({
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b-2 border-slate-900">
         <div>
-          <h1 className="text-xl font-black tracking-tight text-slate-950 uppercase">
-            {companyName}
-          </h1>
+          <img
+            src="/logo_ge.png"
+            alt={companyName || "Goel Enterprises"}
+            className="h-11 sm:h-12 w-auto object-contain mb-1.5"
+          />
           <p className="text-[11px] font-semibold text-slate-500">
             Industrial &amp; Corporate Services &bull; Payroll Division
           </p>

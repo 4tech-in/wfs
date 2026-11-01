@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 import { PaginationState } from "@tanstack/react-table"
 import { SalaryTable } from "./salary-table"
 import { CalculateAllSalaryDialog } from "./calculate-all-salary-dialog"
+import { useDebounce } from "@/hooks/use-debounce"
 import {
     Dialog,
     DialogContent,
@@ -30,6 +31,8 @@ export default function EmployeeSalaryPage() {
     const [calculateAllOpen, setCalculateAllOpen] = React.useState(false)
     const [selectedCompany, setSelectedCompany] = React.useState<{ id: string, name: string } | null>(null)
     const [companySearchTerm, setCompanySearchTerm] = React.useState("")
+    const [search, setSearch] = React.useState("")
+    const debouncedSearch = useDebounce(search, 400)
     const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<string[]>([])
     const [, setSelectedEmployees] = React.useState<EmployeeDropdownItem[]>([])
     const [editingEmployee, setEditingEmployee] = React.useState<{ id: string, name: string, employeeId?: string } | null>(null)
@@ -41,6 +44,11 @@ export default function EmployeeSalaryPage() {
         pageSize: 10,
     })
 
+    const handleSearchChange = React.useCallback((value: string) => {
+        setSearch(value)
+        setPagination(prev => ({ ...prev, pageIndex: 0 }))
+    }, [])
+
     const {
         data: companyData,
         fetchNextPage: fetchNextCompanies,
@@ -51,7 +59,8 @@ export default function EmployeeSalaryPage() {
 
     const { data: salaryListData, isLoading: isSalaryLoading } = useSalariesQuery(
         pagination.pageIndex + 1,
-        pagination.pageSize
+        pagination.pageSize,
+        debouncedSearch
     )
 
     const createSalaryMutation = useCreateSalaryMutation()
@@ -386,6 +395,8 @@ export default function EmployeeSalaryPage() {
                     pagination={pagination}
                     onPaginationChange={setPagination}
                     totalItems={salaryListData?.pagination?.total}
+                    search={search}
+                    onSearchChange={handleSearchChange}
                     onDelete={handleDelete}
                     onEdit={handleEdit}
                 />

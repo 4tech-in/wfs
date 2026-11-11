@@ -6,13 +6,14 @@ import type { ApexOptions } from "apexcharts"
 import { Activity, Building2, SlidersHorizontal } from "lucide-react"
 import { useDocCenterQuery } from "@/hooks/queries/use-doc-center"
 import { ElectricityBillMetadata } from "@/types/electricity-bill"
+import { calculateElectricityUnitPrice } from "@/lib/electricity-bill-utils"
 
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false })
 
-type MetricKey = "unitPriceBasic" | "unitKwh" | "unitKvah" | "paidAmount"
+type MetricKey = "paidUnitRate" | "unitKwh" | "unitKvah" | "paidAmount"
 
 const METRICS: Record<MetricKey, { label: string; color: string; currency: boolean }> = {
-  unitPriceBasic: { label: "Unit Price", color: "#2563eb", currency: true },
+  paidUnitRate: { label: "Unit Price Actual", color: "#2563eb", currency: true },
   unitKwh: { label: "Units Consumed (kWh)", color: "#0891b2", currency: false },
   unitKvah: { label: "Units Consumed (kVAh)", color: "#7c3aed", currency: false },
   paidAmount: { label: "Total Amount Paid", color: "#059669", currency: true },
@@ -36,7 +37,7 @@ const formatMonth = (key: string) => {
 }
 
 export function ElectricityTrendChart({ currentAccountName }: { currentAccountName?: string }) {
-  const [metric, setMetric] = React.useState<MetricKey>("unitPriceBasic")
+  const [metric, setMetric] = React.useState<MetricKey>("paidUnitRate")
   const [account, setAccount] = React.useState(currentAccountName || "all")
   const { data, isLoading } = useDocCenterQuery({
     documentType: "Electricity",
@@ -69,8 +70,11 @@ export function ElectricityTrendChart({ currentAccountName }: { currentAccountNa
 
       const rawValue = metric === "paidAmount"
         ? bill.metadata.paidAmount || bill.metadata.totalAmount
-        : bill.metadata[metric]
+        : metric === "paidUnitRate"
+          ? calculateElectricityUnitPrice(bill.metadata)
+          : bill.metadata[metric]
       const value = parseValue(rawValue)
+      if (metric === "paidUnitRate" && value <= 0) return
       const current = grouped.get(key) || { total: 0, count: 0 }
       grouped.set(key, { total: current.total + value, count: current.count + 1 })
     })
@@ -92,7 +96,7 @@ export function ElectricityTrendChart({ currentAccountName }: { currentAccountNa
         return {
         label: formatMonth(key),
           value: value
-            ? metric === "unitPriceBasic" ? value.total / value.count : value.total
+            ? metric === "paidUnitRate" ? value.total / value.count : value.total
             : 0,
           hasBill: Boolean(value),
         }
@@ -118,7 +122,25 @@ export function ElectricityTrendChart({ currentAccountName }: { currentAccountNa
       fontFamily: "inherit",
     },
     colors: [metricConfig.color],
-    dataLabels: { enabled: false },
+    dataLabels: {
+      enabled: metric === "paidUnitRate",
+      formatter: (value) => formatter(Number(value)),
+      offsetY: -8,
+      style: {
+        fontSize: "11px",
+        fontWeight: 700,
+        colors: [metricConfig.color],
+      },
+      background: {
+        enabled: true,
+        foreColor: metricConfig.color,
+        borderRadius: 6,
+        padding: 4,
+        opacity: 0.9,
+        borderWidth: 1,
+        borderColor: "#e2e8f0",
+      },
+    },
     stroke: { curve: "smooth", width: 3 },
     fill: {
       type: "gradient",
@@ -147,7 +169,7 @@ export function ElectricityTrendChart({ currentAccountName }: { currentAccountNa
       }] : []),
     },
     noData: { text: "No trend data available", align: "center", verticalAlign: "middle" },
-  }), [formatter, metricConfig.color, points])
+  }), [formatter, metric, metricConfig.color, points])
 
   return (
     <section className="rounded-[2rem] border border-slate-100 bg-white p-6 md:p-8 shadow-sm">

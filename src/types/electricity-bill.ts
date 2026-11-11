@@ -17,7 +17,6 @@ export interface ElectricityBillMetadata {
   unitKvah?: string;
   kwhKvahDiff?: string;
   kwhKvahRatio?: string;
-  unitPriceBasic?: string;
   consumptionCharges?: string;
   fppca?: string;
   ed?: string;

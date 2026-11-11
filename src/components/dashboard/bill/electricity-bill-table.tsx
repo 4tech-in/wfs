@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { ElectricityBillRecord } from "@/types/electricity-bill"
 import { cn } from "@/lib/utils"
+import { calculateElectricityUnitPrice } from "@/lib/electricity-bill-utils"
 
 interface ElectricityBillTableProps {
   data: ElectricityBillRecord[]
@@ -144,9 +145,6 @@ export function ElectricityBillTable({
               kVAh
             </TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right border-r border-slate-100">
-              Price/Unit
-            </TableHead>
-            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right border-r border-slate-100">
               Consum.
             </TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right border-r border-slate-100">
@@ -168,7 +166,7 @@ export function ElectricityBillTable({
               Arrears
             </TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right border-r border-slate-100">
-              Paid Rate
+              Unit Price Actual
             </TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right border-r border-slate-100">
               Total
@@ -250,10 +248,6 @@ export function ElectricityBillTable({
                   </TableCell>
 
                   <TableCell className="py-4 font-bold text-slate-600 text-[13px] text-right border-r border-slate-100">
-                    {formatCurrency(meta?.unitPriceBasic)}
-                  </TableCell>
-
-                  <TableCell className="py-4 font-bold text-slate-600 text-[13px] text-right border-r border-slate-100">
                     {formatCurrency(meta?.consumptionCharges)}
                   </TableCell>
 
@@ -282,7 +276,7 @@ export function ElectricityBillTable({
                   </TableCell>
 
                   <TableCell className="py-4 font-bold text-slate-600 text-[13px] text-right border-r border-slate-100">
-                    {formatCurrency(meta?.paidUnitRate)}
+                    {formatCurrency(calculateElectricityUnitPrice(meta))}
                   </TableCell>
 
                   <TableCell className="py-4 font-black text-[14px] text-slate-900 text-right border-r border-slate-100">
@@ -354,7 +348,7 @@ export function ElectricityBillTable({
 
                 {isExpanded && (
                   <TableRow className="bg-slate-50/50">
-                    <TableCell colSpan={24} className="px-12 py-8">
+                    <TableCell colSpan={21} className="px-12 py-8">
                       <div className="flex flex-wrap gap-8 items-start">
                          {bill.files && bill.files.length > 0 && (
                            <div className="flex-1">

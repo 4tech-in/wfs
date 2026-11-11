@@ -29,6 +29,7 @@ import { ElectricityBillMetadata } from "@/types/electricity-bill"
 import { cn } from "@/lib/utils"
 import { format, parseISO, isValid } from "date-fns"
 import { toast } from "sonner"
+import { calculateElectricityUnitPrice } from "@/lib/electricity-bill-utils"
 
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return "—"
@@ -194,6 +195,7 @@ export default function BillDetailPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
   const latestElectricityMeta = (latestElectricityBill?.metadata || meta) as ElectricityBillMetadata
   const latestElectricityCreatedAt = latestElectricityBill?.createdAt || bill.createdAt
+  const actualUnitPrice = calculateElectricityUnitPrice(latestElectricityMeta)
   const isPaid = safeParse(meta?.paidAmount) >= safeParse(meta?.totalAmount)
   const isAnyAvg = String(meta?.isFromAverage) === "true" || String(meta?.isToAverage) === "true"
 
@@ -335,7 +337,7 @@ export default function BillDetailPage() {
             <StatCard label="Bill Amount" value={meta?.totalAmount} prefix="₹" highlight="blue" />
             <StatCard label="Amount Paid" value={meta?.paidAmount} prefix="₹" highlight={isPaid ? "green" : "blue"} />
             <StatCard label="Pending Balance" value={String(safeParse(meta?.totalAmount) - safeParse(meta?.paidAmount))} prefix="₹" highlight={isPaid ? undefined : "amber"} />
-            <StatCard label="Unit Rate" value={meta?.paidUnitRate} prefix="₹" highlight="amber" />
+            <StatCard label="Unit Price Actual" value={actualUnitPrice.toFixed(2)} prefix="₹" highlight="amber" />
           </div>
 
           {/* Average Billing Notice */}
@@ -400,7 +402,7 @@ export default function BillDetailPage() {
                         label="Power Factor"
                         value={latestElectricityMeta.kwhKvahRatio ? `${latestElectricityMeta.kwhKvahRatio}%` : "—"}
                       />
-                      <InfoBlock label="Basic Unit Price" value={formatCurrency(latestElectricityMeta.unitPriceBasic)} />
+                      <InfoBlock label="Unit Price Actual" value={formatCurrency(actualUnitPrice)} />
                     </>
                   ) : (
                     <>

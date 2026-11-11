@@ -12,7 +12,6 @@ import {
   Zap, 
   Building2, 
   Calendar as CalendarIcon, 
-  CreditCard,
   Gauge,
   Calculator
 } from "lucide-react"
@@ -40,7 +39,7 @@ import { useSavedBillAccounts } from "@/hooks/use-saved-bill-accounts"
 import { SavedAccountField } from "./saved-account-field"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { format, parseISO, isValid } from "date-fns"
+import { addMonths, differenceInCalendarDays, differenceInMonths, format, parseISO, isValid } from "date-fns"
 import { ElectricityBillMetadata } from "@/types/electricity-bill"
 
 const electricityBillSchema = z.object({
@@ -55,7 +54,6 @@ const electricityBillSchema = z.object({
   unitKwh: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   unitKvah: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   kwhKvahRatio: z.string().optional(),
-  unitPriceBasic: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   totalAmount: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   adjPrevBill: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
   acdInt: z.string().optional().refine(v => !v || parseFloat(v) >= 0, "Cannot be negative"),
@@ -103,6 +101,7 @@ function ChargeField({
   prefix = "₹",
   suffix,
   allowNegative,
+  readOnly,
 }: {
   name: keyof ElectricityBillFormValues
   label: string
@@ -112,6 +111,7 @@ function ChargeField({
   prefix?: string
   suffix?: string
   allowNegative?: boolean
+  readOnly?: boolean
 }) {
   return (
     <FormField
@@ -130,6 +130,7 @@ function ChargeField({
                 placeholder="0.00"
                 {...field}
                 disabled={disabled}
+                readOnly={readOnly}
                 value={(field.value as string) ?? ""}
                 className={cn(
                   inputClass,
@@ -252,12 +253,17 @@ export function ElectricityBillFormDialog({
       unitKwh: isEditing ? String(initialData?.unitKwh ?? "") : "",
       unitKvah: isEditing ? String(initialData?.unitKvah ?? "") : "",
       kwhKvahRatio: isEditing ? String(initialData?.kwhKvahRatio ?? "") : "",
-      unitPriceBasic: isEditing ? String(initialData?.unitPriceBasic ?? "") : "",
       totalAmount: isEditing ? String(initialData?.totalAmount ?? "") : "",
       adjPrevBill: isEditing ? String(initialData?.adjPrevBill ?? "") : "",
       acdInt: isEditing ? String(initialData?.acdInt ?? "") : "",
-      acd: isEditing ? String(initialData?.acd ?? "") : "",
-      lastAcd: isEditing ? String(initialData?.lastAcd ?? "") : "",
+      // For "Add Next Bill", carry the previous entry's ACD into both fields.
+      // Existing bills retain their individually saved ACD values when edited.
+      acd: isEditing
+        ? String(initialData?.acd ?? "")
+        : String(initialData?.acd ?? initialData?.lastAcd ?? ""),
+      lastAcd: isEditing
+        ? String(initialData?.lastAcd ?? "")
+        : String(initialData?.acd ?? initialData?.lastAcd ?? ""),
       paidAmount: isEditing ? String(initialData?.paidAmount ?? "") : "",
       dueDate: isEditing ? String(initialData?.dueDate ?? "") : "",
       paidUnitRate: isEditing ? String(initialData?.paidUnitRate ?? "") : "",
@@ -272,12 +278,15 @@ export function ElectricityBillFormDialog({
   const watchedUnitKwh = useWatch({ control: form.control, name: "unitKwh" })
   const watchedUnitKvah = useWatch({ control: form.control, name: "unitKvah" })
   const watchedTotal = useWatch({ control: form.control, name: "totalAmount" })
+  const watchedBilledUnits = Math.max(safeParse(watchedUnitKwh), safeParse(watchedUnitKvah))
   const watchedFiles = useWatch({ control: form.control, name: "files" })
   const selectedFiles = watchedFiles ?? []
 
   const linkedAccountNumbers = getAccountNumbers(watchedAccountName || "")
 
-  // Calculate the inclusive number of calendar months in the billing period.
+  // Count complete calendar months, then convert remaining days using
+  // 30 days = 1 month. Examples: 29 Aug to 29 Sep = 1 month;
+  // 29 Aug to 18 Nov = 2 months + 20/30 = 2.67 months.
   React.useEffect(() => {
     if (!watchedBillFrom || !watchedBillTo) {
       form.setValue("months", "", { shouldDirty: false })
@@ -291,11 +300,11 @@ export function ElectricityBillFormDialog({
       return
     }
 
-    const months =
-      (to.getFullYear() - from.getFullYear()) * 12 +
-      (to.getMonth() - from.getMonth()) +
-      1
-    form.setValue("months", String(months), { shouldDirty: false })
+    const completeMonths = differenceInMonths(to, from)
+    const completeMonthsEnd = addMonths(from, completeMonths)
+    const remainingDays = differenceInCalendarDays(to, completeMonthsEnd)
+    const months = completeMonths + remainingDays / 30
+    form.setValue("months", String(Number(months.toFixed(2))), { shouldDirty: false })
   }, [watchedBillFrom, watchedBillTo, form])
 
   // Auto-calculate kWh/kVAh Ratio
@@ -318,11 +327,15 @@ export function ElectricityBillFormDialog({
   // Auto-calculate Unit Price Actual
   React.useEffect(() => {
     const kwh = safeParse(watchedUnitKwh)
+    const kvah = safeParse(watchedUnitKvah)
     const total = safeParse(watchedTotal)
-    if (kwh > 0 && total > 0) {
-      form.setValue("paidUnitRate", (total / kwh).toFixed(2))
-    }
-  }, [watchedUnitKwh, watchedTotal, form])
+    const billedUnits = Math.max(kwh, kvah)
+    form.setValue(
+      "paidUnitRate",
+      billedUnits > 0 && total > 0 ? (total / billedUnits).toFixed(2) : "",
+      { shouldDirty: false }
+    )
+  }, [watchedUnitKwh, watchedUnitKvah, watchedTotal, form])
 
   const onSubmit = async (values: ElectricityBillFormValues) => {
     try {
@@ -495,13 +508,6 @@ export function ElectricityBillFormDialog({
                 </div>
               </section>
 
-              <section>
-                <SectionTitle icon={<CreditCard className="h-4 w-4" />} title="Financials" />
-                <div className="grid grid-cols-1 gap-6">
-                  <ChargeField control={form.control} name="unitPriceBasic" label="Unit Price Basic" />
-                </div>
-              </section>
-
               <section className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                 <SectionTitle icon={<Calculator className="h-4 w-4" />} title="Summary & ACD" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -516,10 +522,10 @@ export function ElectricityBillFormDialog({
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-1">
-                     <ChargeField control={form.control} name="paidUnitRate" label="Unit Price Actual" prefix="₹" />
-                     {(watchedUnitKwh && watchedTotal) && (
+                     <ChargeField control={form.control} name="paidUnitRate" label="Unit Price Actual" prefix="₹" readOnly />
+                     {(watchedBilledUnits > 0 && safeParse(watchedTotal) > 0) && (
                        <p className="text-[10px] font-bold text-slate-500 italic px-1">
-                         ({watchedTotal} / {watchedUnitKwh}) = {(safeParse(watchedTotal) / safeParse(watchedUnitKwh)).toFixed(2)}
+                         ({watchedTotal} / max({watchedUnitKwh || 0}, {watchedUnitKvah || 0})) = {(safeParse(watchedTotal) / watchedBilledUnits).toFixed(2)}
                        </p>
                      )}
                    </div>

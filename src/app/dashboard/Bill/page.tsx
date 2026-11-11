@@ -24,6 +24,7 @@ import { DocumentItem } from "@/types/doc-center"
 import { DataTableExport } from "@/components/ui/data-table-export"
 import { ColumnDef } from "@tanstack/react-table"
 import { format } from "date-fns"
+import { calculateElectricityUnitPrice } from "@/lib/electricity-bill-utils"
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
 
@@ -164,7 +165,7 @@ export default function BillPage() {
     { accessorKey: "metadata.billTo", header: "Bill To", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.billTo ? format(new Date(row.metadata.billTo), "dd MMM yyyy") : "N/A" } },
     { accessorKey: "metadata.unitKwh", header: "kWh", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.unitKwh || "N/A" } },
     { accessorKey: "metadata.unitKvah", header: "kVAh", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.unitKvah || "N/A" } },
-    { accessorKey: "metadata.unitPriceBasic", header: "Price Basic", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.unitPriceBasic || "N/A" } },
+    { accessorKey: "metadata.paidUnitRate", header: "Unit Price Actual", meta: { exportValue: (row: ElectricityBillRecord) => calculateElectricityUnitPrice(row.metadata).toFixed(2) } },
     { accessorKey: "metadata.consumptionCharges", header: "Consum. Chg", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.consumptionCharges || "N/A" } },
     { accessorKey: "metadata.fppca", header: "FPPCA", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.fppca || "N/A" } },
     { accessorKey: "metadata.ed", header: "ED", meta: { exportValue: (row: ElectricityBillRecord) => row.metadata?.ed || "N/A" } },

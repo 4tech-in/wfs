@@ -391,7 +391,8 @@ export default function FuelExpensePage() {
         }}
         editId={editingFuel?._id}
         initialValues={editingFuel ? {
-          fillingDate: editingFuel.fillingDate ? new Date(editingFuel.fillingDate).toISOString().substring(0, 10) : "",
+
+          fillingDate: editingFuel.fillingDate ? format(new Date(editingFuel.fillingDate), "yyyy-MM-dd") : "",
           vehicleId: typeof editingFuel.vehicleId === 'object' && editingFuel.vehicleId !== null ? editingFuel.vehicleId._id : String(editingFuel.vehicleId || ""),
           employeeId: typeof editingFuel.employeeId === 'object' && editingFuel.employeeId !== null ? editingFuel.employeeId._id : String(editingFuel.employeeId || ""),
           odometer: String(editingFuel.odometer),

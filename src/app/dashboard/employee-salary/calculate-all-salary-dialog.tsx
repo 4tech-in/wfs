@@ -13,6 +13,7 @@ import {
   Clock,
   CalendarDays,
   FileText,
+  FileSpreadsheet,
   Printer,
   ChevronDown,
   ChevronUp
@@ -39,6 +40,7 @@ import { useCalculateAllPayrollMutation } from "@/hooks/queries/use-salary"
 import { useCompanyDropdownInfiniteQuery } from "@/hooks/queries/use-company"
 import { BulkPayrollEmployeeItem } from "@/types/salary"
 import { cn } from "@/lib/utils"
+import { exportToExcel } from "@/lib/export-utils"
 
 interface CalculateAllSalaryDialogProps {
   open: boolean;
@@ -91,12 +93,10 @@ export function CalculateAllSalaryDialog({
     });
   }
 
-  // Reset filter when opening
-  React.useEffect(() => {
-    if (!open) {
-      setFilterSearch("")
-    }
-  }, [open])
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) setFilterSearch("")
+    onOpenChange(nextOpen)
+  }
 
   const result = calculateAllMutation.data
   const filteredResults = React.useMemo(() => {
@@ -110,9 +110,60 @@ export function CalculateAllSalaryDialog({
     )
   }, [result, filterSearch])
 
+  const handleExportExcel = () => {
+    if (filteredResults.length === 0) return
+
+    const period = `${selectedYear}-${selectedMonth}`
+    const selectedCompany = selectedCompanyId === "all"
+      ? "All Companies"
+      : allCompanies.find((company) => company._id === selectedCompanyId)?.name || "Company"
+    const rows: Record<string, unknown>[] = filteredResults.map((employee, index) => ({
+      "Sr. No.": index + 1,
+      "Salary Month": period,
+      "Company": employee.companyName || selectedCompany,
+      "Employee Code": employee.employeeCode || "",
+      "Employee Name": employee.employeeName,
+      "Email": employee.email || "",
+      "Mobile": employee.mobileNo || "",
+      "Department": employee.department || "",
+      "Designation": employee.designation || "",
+      "Date of Joining": employee.doj || "",
+      "Salary Type": employee.salaryType,
+      "Configured Salary / Rate": employee.basicSalary ?? employee.rate ?? 0,
+      "Calendar Days": employee.totalCalendarDays ?? 0,
+      "Working Days": employee.totalWorkingDays ?? 0,
+      "Holidays": employee.holidaysCount ?? 0,
+      "Weekly Offs": employee.weeklyOffCount ?? 0,
+      "Present Days": employee.presentDays ?? 0,
+      "Half Days": employee.halfDays ?? 0,
+      "Absent Days": employee.absentDays ?? 0,
+      "Paid Sundays": employee.paidSundays ?? 0,
+      "Total Paid Days": employee.totalPaidDays ?? 0,
+      "Worked Hours": Number(((employee.totalWorkedMinutes ?? 0) / 60).toFixed(2)),
+      "Overtime Hours": employee.totalOvertimeHours ?? 0,
+      "Overtime Rate": employee.overtimeRate ?? 0,
+      "Basic": employee.payrollDetails?.basic ?? 0,
+      "HRA": employee.payrollDetails?.hra ?? 0,
+      "Conveyance": employee.payrollDetails?.conveyance ?? 0,
+      "Base Pay": employee.basePay ?? 0,
+      "Overtime Pay": employee.overtimePay ?? 0,
+      "Gross Earnings": employee.grossEarnings ?? 0,
+      "PF Deduction": employee.payrollDetails?.pfEmployee ?? 0,
+      "ESI Deduction": employee.payrollDetails?.esiEmployee ?? 0,
+      "LWF Deduction": employee.payrollDetails?.lwfEmployee ?? 0,
+      "Total Deductions": employee.totalDeductions ?? 0,
+      "Net Salary": employee.netPay ?? 0,
+      "Status": employee.status,
+      "Error": employee.error || "",
+    }))
+
+    const safeCompanyName = selectedCompany.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "")
+    exportToExcel(rows, `Salary_Report_${safeCompanyName}_${period}`, "Salary Report")
+  }
+
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[780px] max-h-[90vh] flex flex-col p-0 overflow-hidden border-none rounded-[28px] shadow-2xl bg-white">
         <DialogHeader className="p-6 md:p-8 pb-4 bg-slate-50/80 border-b border-slate-100 shrink-0">
           <DialogTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -273,18 +324,29 @@ export function CalculateAllSalaryDialog({
                     </div>
 
                     {filteredResults.length > 0 && (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setIsBatchSlip(true)
-                          setSelectedSlipEmployee(null)
-                          setSlipOpen(true)
-                        }}
-                        className="h-8 px-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl gap-1.5 text-xs shadow-xs shrink-0"
-                      >
-                        <Printer className="h-3.5 w-3.5 text-teal-400" />
-                        Print All Slips ({filteredResults.length})
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleExportExcel}
+                          className="h-8 px-3 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 font-extrabold rounded-xl gap-1.5 text-xs shadow-xs shrink-0"
+                        >
+                          <FileSpreadsheet className="h-3.5 w-3.5" />
+                          Export Excel ({filteredResults.length})
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setIsBatchSlip(true)
+                            setSelectedSlipEmployee(null)
+                            setSlipOpen(true)
+                          }}
+                          className="h-8 px-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl gap-1.5 text-xs shadow-xs shrink-0"
+                        >
+                          <Printer className="h-3.5 w-3.5 text-teal-400" />
+                          Print All Slips ({filteredResults.length})
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>

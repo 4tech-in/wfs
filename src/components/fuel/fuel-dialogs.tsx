@@ -29,7 +29,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useVehiclesInfiniteQuery } from "@/hooks/queries/use-vehicles"
 import { InfiniteScrollSelect } from "@/components/ui/infinite-scroll-select"
@@ -53,7 +53,7 @@ const fuelFormSchema = z.object({
 })
 
 const getEmptyFuelFormValues = (): FuelFormValues => ({
-  fillingDate: new Date().toISOString().substring(0, 10),
+  fillingDate: format(new Date(), "yyyy-MM-dd"),
   vehicleId: "",
   employeeId: "",
   odometer: "",
@@ -292,7 +292,7 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
                               )}
                             >
                               {field.value ? (
-                                format(new Date(field.value), "PPP")
+                                format(parseISO(field.value), "PPP")
                               ) : (
                                 <span>Pick a date</span>
                               )}
@@ -303,8 +303,8 @@ export function AddFuelDialog({ open, onOpenChange, onAdd, initialValues, editId
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={field.value ? new Date(field.value) : undefined}
-                            onSelect={(date) => field.onChange(date?.toISOString())}
+                            selected={field.value ? parseISO(field.value) : undefined}
+                            onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
                             disabled={(date) =>
                               date > new Date() || date < new Date("1900-01-01")
                             }
